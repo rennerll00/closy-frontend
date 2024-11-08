@@ -17,7 +17,6 @@ import {
 import { cn } from "@/lib/utils";
 import {
   ArrowUp,
-  Bot,
   ChevronLeft,
   ExternalLink,
   Menu,
@@ -328,12 +327,12 @@ export function FashionSearchChat() {
         setConversations(chats);
 
         // Find the current chat
-        const chat = chats.find(c => c.id === chatId);
+        const chat = chats.find((c: { id: string; }) => c.id === chatId);
         if (chat) {
           // Update conversation
           setConversation(chat.conversation);
-          // Find the last bot message
-          const lastBotMessageIndex = chat.conversation.map(msg => !!msg.bot).lastIndexOf(true);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const lastBotMessageIndex = chat.conversation.map((msg: { bot: any; }) => !!msg.bot).lastIndexOf(true);
           if (lastBotMessageIndex !== -1) {
             const lastBotMessage = chat.conversation[lastBotMessageIndex];
             // Check "in-progress" field
@@ -354,12 +353,6 @@ export function FashionSearchChat() {
         stopBotResponseChecking();
       }
     }, 10000); // Every 10 seconds
-
-    // Set a timeout to stop checking after 1m30s (90,000ms)
-    botResponseTimeout.current = setTimeout(() => {
-      setIsLoading(false);
-      stopBotResponseChecking();
-    }, 90000); // After 90 seconds
   };
 
   const stopBotResponseChecking = () => {
@@ -585,7 +578,7 @@ export function FashionSearchChat() {
                   </div>
                   {/* Coming soon */}
                   <div className="flex justify-center">
-                    <div className="relative group w-40 h-10 mb-4 mt-24">
+                    <div className="relative group w-40 h-10">
                       <button className="bg-[#f6213f] text-white hover:bg-[#d2102c] font-medium rounded-full text-sm px-6 py-2">
                         <div className="flex items-center">
                           <Sparkles width={12} height={12} className="mr-2"/>
