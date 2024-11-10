@@ -188,8 +188,8 @@ export function FashionSearchChat() {
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
-
   const ProductCard = ({ product, explanation }: BotMessage) => {
+    if (!product) return null;
     const selectedImage = selectedImages[product.title] || product.image;
 
     const handleImageClick = (url: string) => {
