@@ -329,7 +329,7 @@ export function FashionSearchChat() {
               await signupUser(userData.email, userData.country); // Ensure signupUser is called
 
               // 2. Create the chat
-              const newChat = await createChat(userData.email, currentConversation, userLanguage);
+              const newChat = await createChat(userData.email, currentConversation);
               console.log("newChat", newChat);
               setCurrentChatId(newChat.id);
               router.replace(`/?chat=${newChat.id}`);
