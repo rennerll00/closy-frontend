@@ -1,4 +1,3 @@
-// frontend
 "use client";
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -30,15 +29,15 @@ import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import {
+  checkChat,
   createChat,
   getChats,
-  removeUser
+  removeUser,
+  signupUser, // Ensure signupUser is imported
 } from '../lib/api';
-import { getLocalizedText, getUserLanguage } from '../lib/localization';
+import { getLocalizedText, getUserLanguage, LocalizationStrings } from '../lib/localization';
 
 import logo from '/public/images/logo.png';
-
-type PromptKeys = "examplePrompt1" | "examplePrompt2" | "examplePrompt3";
 
 interface Product {
   title: string;
@@ -49,17 +48,19 @@ interface Product {
 }
 
 interface BotMessage {
-  product: Product;
-  score: number;
-  explanation: string;
+  product?: Product;
+  score?: number;
+  explanation?: string;
+  message?: BotResponse;
+  "in-progress": boolean;
+  "progress-message"?: string;
 }
 
 type BotResponse = string | BotMessage[];
 
 interface ConversationMessage {
   user?: string;
-  bot?: BotResponse;
-  "in-progress"?: boolean;
+  bot?: BotMessage;
 }
 
 interface UserData {
@@ -73,7 +74,7 @@ const timeZoneCityToCountry: { [key: string]: string } = {
   "Sao Paulo": "br",
 };
 
-const examplePromptsKeys: PromptKeys[] = ["examplePrompt1", "examplePrompt2", "examplePrompt3"];
+const examplePromptsKeys: (keyof LocalizationStrings)[] = ["examplePrompt1","examplePrompt2","examplePrompt3"];
 
 // Define the backend API base URL
 // const API_BASE_URL = 'http://localhost:4000';
@@ -103,6 +104,7 @@ export function FashionSearchChat() {
 
   const botResponseCheckInterval = useRef<NodeJS.Timeout | null>(null);
   const botResponseTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [isAwaitingEmail, setIsAwaitingEmail] = useState(false);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -262,29 +264,106 @@ export function FashionSearchChat() {
     if (!message.trim()) return;
 
     const userMessage: ConversationMessage = { user: message };
-    setConversation((prev) => [...prev, userMessage]);
+    setConversation((prev) => [...prev, userMessage]); // Ensure the user message is added locally
     setInput('');
     setIsLoading(true);
 
-    if (!currentChatId) {
-      try {
-        // Create a new chat with the initial user message
-        const newChat = await createChat(userData.email, message, userLanguage);
-        console.log("newChat", newChat);
-        setCurrentChatId(newChat.id);
-        // Update the URL with the new chatId
-        router.replace(`/?chat=${newChat.id}`);
+    if (isAwaitingEmail) {
+      // Process the email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (emailRegex.test(message.trim())) {
+        // Valid email
+        const email = message.trim();
+        setUserData(prev => ({ ...prev, email }));
+        localStorage.setItem('email', email);
+        setIsAwaitingEmail(false);
 
-        // Call updateChat to save the conversation
-        updateChatMessages(newChat.id, [...conversation, userMessage]);
+        try {
+          // 1. Call signupUser(email, country)
+          await signupUser(email, userData.country); // Ensure signupUser is called with email and country
 
-      } catch (error) {
-        console.error('Error starting new chat:', error);
+          // 2. Proceed to createChat
+          const newChat = await createChat(email, conversation);
+          console.log("newChat", newChat);
+          setCurrentChatId(newChat.id);
+          router.replace(`/?chat=${newChat.id}`);
+
+          // 3. Update the chat messages
+          updateChatMessages(newChat.id, [...conversation, userMessage]);
+
+          // 4. Start checking for bot responses
+          startBotResponseChecking(newChat.id);
+        } catch (error) {
+          console.error('Error during signup or creating chat:', error);
+          const botMessage: ConversationMessage = { bot: { message: getLocalizedText(userLanguage, "createChatError"), "in-progress": false } };
+          setConversation(prev => [...prev, botMessage]);
+          setIsLoading(false);
+        }
+      } else {
+        // Invalid email
+        const botMessage: ConversationMessage = { bot: { message: getLocalizedText(userLanguage, "invalidEmail"), "in-progress": false } };
+        setConversation(prev => [...prev, botMessage]);
         setIsLoading(false);
       }
+      return;
+    }
+
+    const checkAndUpdate = async (chatId: string | null) => {
+      const currentConversation = [...conversation, userMessage];
+
+      // Check first if enough preferences
+      const result = await checkChat(currentConversation, userLanguage);
+      console.log("result.response", result.response);
+
+      if (result.response === 'OK') {
+        if (chatId) {
+          // Call updateChat to save the conversation
+          updateChatMessages(chatId, currentConversation);
+          // Start checking for bot responses
+          startBotResponseChecking(chatId);
+        } else {
+          if (userData.email) {
+            // We can create the chat now
+            try {
+              // 1. Call signupUser(email, country) if not already signed up
+              await signupUser(userData.email, userData.country); // Ensure signupUser is called
+
+              // 2. Create the chat
+              const newChat = await createChat(userData.email, currentConversation, userLanguage);
+              console.log("newChat", newChat);
+              setCurrentChatId(newChat.id);
+              router.replace(`/?chat=${newChat.id}`);
+              // 3. Update the chat messages
+              updateChatMessages(newChat.id, currentConversation);
+              // 4. Start checking for bot responses
+              startBotResponseChecking(newChat.id);
+            } catch (error) {
+              console.error('Error starting new chat:', error);
+              const botMessage: ConversationMessage = { bot: { message: getLocalizedText(userLanguage, "createChatError"), "in-progress": false } };
+              setConversation(prev => [...prev, botMessage]);
+              setIsLoading(false);
+            }
+          } else {
+            // Ask for email
+            const botMessage: ConversationMessage = { bot: { message: getLocalizedText(userLanguage, "askEmail"), "in-progress": false } };
+            setConversation(prev => [...prev, botMessage]);
+            setIsAwaitingEmail(true);
+            setIsLoading(false);
+          }
+        }
+      } else {
+        // display result.response message on the chat and keep track of that locally for when we call updateChat later
+        const botMessage: ConversationMessage = { bot: { message: result.response, "in-progress": false } };
+        setConversation(prev => [...prev, botMessage]);
+        setIsLoading(false);
+      }
+    }
+
+    if (!currentChatId) {
+      // We need to process locally until we have enough information
+      await checkAndUpdate(null);
     } else {
-      // Update existing chat
-      updateChatMessages(currentChatId, [...conversation, userMessage]);
+      await checkAndUpdate(currentChatId);
     }
   };
 
@@ -302,13 +381,16 @@ export function FashionSearchChat() {
       },
       body: JSON.stringify({ conversation: updatedConversation, language: userLanguage })
     })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Failed to update chat');
+      }
+      // Optionally handle response
+    })
     .catch(error => {
       console.error('Error updating chat:', error);
       setIsLoading(false);
     });
-
-    // Start checking for bot responses
-    startBotResponseChecking(chatId);
   };
 
   const startBotResponseChecking = (chatId: string) => {
@@ -320,7 +402,7 @@ export function FashionSearchChat() {
       clearTimeout(botResponseTimeout.current);
     }
 
-    // Start the interval to check for bot responses every 10s
+    // Start the interval to check for bot responses every 5s
     botResponseCheckInterval.current = setInterval(async () => {
       try {
         const chats = await getChats();
@@ -331,12 +413,11 @@ export function FashionSearchChat() {
         if (chat) {
           // Update conversation
           setConversation(chat.conversation);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const lastBotMessageIndex = chat.conversation.map((msg: { bot: any; }) => !!msg.bot).lastIndexOf(true);
+          const lastBotMessageIndex = chat.conversation.map((msg: ConversationMessage) => !!msg.bot).lastIndexOf(true);
           if (lastBotMessageIndex !== -1) {
-            const lastBotMessage = chat.conversation[lastBotMessageIndex];
-            // Check "in-progress" field
-            if (lastBotMessage["in-progress"]) {
+            const lastBotMessage = chat.conversation[lastBotMessageIndex].bot;
+            // Check "in-progress" field inside bot
+            if (lastBotMessage && lastBotMessage["in-progress"]) {
               // Bot is still processing, continue polling
             } else {
               // Bot has finished processing, stop polling
@@ -349,10 +430,8 @@ export function FashionSearchChat() {
         }
       } catch (error) {
         console.error('Error fetching chats during bot response check:', error);
-        setIsLoading(false);
-        stopBotResponseChecking();
       }
-    }, 10000); // Every 10 seconds
+    }, 5000); // Every 5 seconds
   };
 
   const stopBotResponseChecking = () => {
@@ -396,6 +475,34 @@ export function FashionSearchChat() {
       console.error('Error logging out:', error);
     }
   };
+
+  const handleExampleClick = (promptKey: keyof LocalizationStrings) => {
+    setIsLoading(true);
+    setConversation([{"user": getLocalizedText(userLanguage, promptKey)}]);
+    setInput(''); // Clear input
+    setTimeout(() => setIsLoading(false), 5000);
+    if (promptKey === "examplePrompt1") {
+      if(userLanguage === "brazilian_portuguese") {
+        setTimeout(() => router.replace(`/?chat=703666cd-a72e-4a10-b4ac-a4155520952a`), 5000);
+      } else {
+        setTimeout(() => router.replace(`/?chat=f5c9bc8a-fb8d-41cc-9041-942e59b51261`), 5000);
+      }
+    } else if (promptKey === "examplePrompt2") {
+      if(userLanguage === "brazilian_portuguese") {
+        setTimeout(() => router.replace(`/?chat=c0882bdb-f216-4e9f-be9a-49d2ee120842`), 5000);
+      } else {
+        setTimeout(() => router.replace(`/?chat=70ddf091-9033-4427-b079-2d6f5dcf7eef`), 5000);
+      }
+    } else if (promptKey === "examplePrompt3") {
+      if(userLanguage === "brazilian_portuguese") {
+        setTimeout(() => router.replace(`/?chat=b3c04959-0fb6-4f92-9a3d-5358aff3fd13`), 5000);
+      } else {
+        setTimeout(() => router.replace(`/?chat=70da7604-3b47-40b4-a8a4-3e8f174566a4`), 5000);
+      }
+    }
+  };
+
+  const lastBotMessage = conversation.map((msg) => msg.bot).filter(Boolean).pop();
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen w-screen bg-gray-50 text-gray-900 overflow-hidden">
@@ -533,7 +640,7 @@ export function FashionSearchChat() {
         sidebarOpen ? "md:ml-64 ml-16" : "ml-16"
       )}>
         {/* Chat Area */}
-        <ScrollArea className="flex-1 pb-20">
+        <ScrollArea className={`flex-1 ${conversation.length > 0 ? 'pb-20' : ''}`}>
           <div className="flex-1 p-4">
             {conversation.length === 0 ? (
               <div className="w-full max-w-2xl mx-auto px-4 text-center flex flex-col justify-center items-center min-h-screen">
@@ -569,7 +676,7 @@ export function FashionSearchChat() {
                       <Button
                         key={promptKey}
                         variant="outline"
-                        onClick={() => sendMessage(getLocalizedText(userLanguage, promptKey))}
+                        onClick={() => handleExampleClick(promptKey)}
                         className="bg-white hover:bg-gray-100 text-gray-800 transition-colors duration-200 font-nunito font-medium"
                       >
                         {getLocalizedText(userLanguage, promptKey)}
@@ -578,11 +685,11 @@ export function FashionSearchChat() {
                   </div>
                   {/* Coming soon */}
                   <div className="flex justify-center">
-                    <div className="relative group w-40 h-10">
+                    <div className="relative group w-40 h-10 mt-2">
                       <button className="bg-[#f6213f] text-white hover:bg-[#d2102c] font-medium rounded-full text-sm px-6 py-2">
                         <div className="flex items-center">
                           <Sparkles width={12} height={12} className="mr-2"/>
-                          <span>Coming Soon</span>
+                          <span>{getLocalizedText(userLanguage,"comingSoonFeatures")}</span>
                         </div>
                       </button>
                       {/* Hover Overlay */}
@@ -624,37 +731,43 @@ export function FashionSearchChat() {
                       message.user ? "justify-end" : "justify-start"
                     )}
                   >
-                    {!message.user && (
+                    {!message.user && (message.bot && (((message.bot.message && Array.isArray(message.bot.message) && message.bot.message.length > 0) || typeof message.bot.message == "string") || !message.bot["in-progress"])) && (
                       <Avatar className="mt-2 w-8 h-8">
                         <AvatarFallback>
                           <Sparkles className="w-6 h-6 text-[#f6213f]" />
                         </AvatarFallback>
                       </Avatar>
                     )}
-                    <div className={cn(
+                    {(message.user || (message.bot && (((message.bot.message && Array.isArray(message.bot.message) && message.bot.message.length > 0) || typeof message.bot.message == "string") || !message.bot["in-progress"]))) && <div className={cn(
                       "rounded-lg p-4 bg-white shadow-sm overflow-wrap break-word",
                       message.user ? "bg-[#f6213f]/30 text-gray-800 max-w-[70%] font-nunito font-medium" : "max-w-[80%] font-nunito font-medium"
                     )}>
-                      {message.user ? message.user : (
-                        Array.isArray(message.bot) ? (
-                          message.bot.length > 0 ? (
-                            <div className="space-y-4">
-                              {message.bot.map((item, idx) => (
-                                <ProductCard key={idx} {...item} />
-                              ))}
-                            </div>
+                      {message.user ? (
+                        <div>{message.user}</div>
+                      ) : message.bot ? (
+                        message.bot.message ? (
+                          Array.isArray(message.bot.message) ? (
+                            message.bot.message.length > 0 ? (
+                              <div className="space-y-4">
+                                {message.bot.message.map((item: BotMessage, idx: number) => (
+                                  <ProductCard key={idx} product={item.product} explanation={item.explanation} in-progress={false} />
+                                ))}
+                              </div>
+                            ) : (
+                              !message.bot["in-progress"] ? (
+                                <div className="bg-white rounded-lg font-nunito font-medium">
+                                  {getLocalizedText(userLanguage, "noResults")}
+                                </div>
+                              ) : null
+                            )
                           ) : (
                             <div className="bg-white rounded-lg font-nunito font-medium">
-                              {getLocalizedText(userLanguage, "noResults")}
+                              {message.bot.message}
                             </div>
                           )
-                        ) : (
-                          <div className="bg-white rounded-lg font-nunito font-medium">
-                            {message.bot}
-                          </div>
-                        )
-                      )}
-                    </div>
+                        ) : null
+                      ) : null}
+                    </div>}
                   </div>
                 ))}
                 {isLoading && (
@@ -664,7 +777,16 @@ export function FashionSearchChat() {
                       <div className="absolute inset-2 border-4 border-[#f6213f] rounded-full animate-spin" />
                       <Sparkles className="absolute inset-3 w-6 h-6 text-[#f6213f]" />
                     </div>
-                    <span className="text-gray-500 text-lg font-medium font-nunito">{getLocalizedText(userLanguage, "thinking")}</span>
+                    {/* Display progress message */}
+                    <span className="text-gray-500 text-lg font-medium font-nunito">
+                      {(() => {
+                        if (lastBotMessage && lastBotMessage["progress-message"]) {
+                          return lastBotMessage["progress-message"];
+                        } else {
+                          return getLocalizedText(userLanguage, "thinking");
+                        }
+                      })()}
+                    </span>
                   </div>
                 )}
                 <div ref={chatEndRef} />

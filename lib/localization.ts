@@ -39,6 +39,10 @@ export type LocalizationStrings = {
   exclusiveDealsStockAlertsSubtitle: string;
   enterEmailPlaceholder: string;
   stayInformedCTA: string;
+  askEmail: string;
+  invalidEmail: string;
+  createChatError: string;
+  thanks: string;
 };
 
 export const localizations: Record<"english" | "brazilian_portuguese", LocalizationStrings> = {
@@ -56,7 +60,7 @@ export const localizations: Record<"english" | "brazilian_portuguese", Localizat
     describeItem: "Describe the item in details...",
     sendMessage: "Type more...",
     examplePrompt1: "Find dress with thin shoulder straps",
-    examplePrompt2: "Moletom pants with lateral zipper pockets",
+    examplePrompt2: "I want a pink set for the gym",
     examplePrompt3: "I need a short jeans skirt with buttons",
     unitedstates: "United States",
     brazil: "Brazil",
@@ -81,6 +85,10 @@ export const localizations: Record<"english" | "brazilian_portuguese", Localizat
     exclusiveDealsStockAlertsSubtitle: "Get the best prices and be notified about your favorite collections",
     enterEmailPlaceholder: "Enter your email...",
     stayInformedCTA: "Stay Informed",
+    askEmail: "Great, before I go and help you, can you please provide an email for signup?",
+    invalidEmail: "Oops, it seems like the email you provided is invalid. Could you please try again?",
+    createChatError: "There was an error creating the chat",
+    thanks: "Thanks"
   },
   brazilian_portuguese: {
     appName: "Closy AI",
@@ -96,7 +104,7 @@ export const localizations: Record<"english" | "brazilian_portuguese", Localizat
     describeItem: "Descreva em detalhes o item...",
     sendMessage: "Escreva mais...",
     examplePrompt1: "Estou procurando vestido de alças finas",
-    examplePrompt2: "Calça moletom com bolsos laterais de zíper",
+    examplePrompt2: "Quero um conjunto rosa para academia",
     examplePrompt3: "Preciso de saia jeans curta com botões",
     unitedstates: "Estados Unidos",
     brazil: "Brasil",
@@ -121,6 +129,10 @@ export const localizations: Record<"english" | "brazilian_portuguese", Localizat
     exclusiveDealsStockAlertsSubtitle: "Receba os melhores preços e seja notificado sobre coleçōes favoritos.",
     enterEmailPlaceholder: "Insira seu email...",
     stayInformedCTA: "Fique informado",
+    askEmail: "Ótimo, antes de eu ajudá-lo, você pode fornecer um email para o signup?",
+    invalidEmail: "Oops, parece que o email que você forneceu é inválido. Poderia tentar novamente?",
+    createChatError: "Houver um erro ao criar o chat",
+    thanks: "Obrigado"
   }
 };
 
