@@ -33,7 +33,7 @@ import {
   createChat,
   getChats,
   removeUser,
-  signupUser, // Ensure signupUser is imported
+  signupUser,
 } from '../lib/api';
 import { getLocalizedText, getUserLanguage, LocalizationStrings } from '../lib/localization';
 
@@ -52,7 +52,7 @@ interface BotMessage {
   score?: number;
   explanation?: string;
   message?: BotResponse;
-  "in-progress": boolean;
+  "in-progress"?: boolean;
   "progress-message"?: string;
 }
 
@@ -105,6 +105,7 @@ export function FashionSearchChat() {
   const botResponseCheckInterval = useRef<NodeJS.Timeout | null>(null);
   const botResponseTimeout = useRef<NodeJS.Timeout | null>(null);
   const [isAwaitingEmail, setIsAwaitingEmail] = useState(false);
+  const [pendingConversation, setPendingConversation] = useState<ConversationMessage[]>([]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -188,6 +189,7 @@ export function FashionSearchChat() {
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+  
   const ProductCard = ({ product, explanation }: BotMessage) => {
     if (!product) return null;
     const selectedImage = selectedImages[product.title] || product.image;
@@ -254,22 +256,22 @@ export function FashionSearchChat() {
         </CardFooter>
       </Card>
     );
+
   };
 
   /**
    * Sends a message either by creating a new chat or updating an existing one.
    * @param message The message string to send.
+   * @param botResponse Optional hardcoded bot response for example prompts.
    */
-  const sendMessage = async (message: string) => {
+  const sendMessage = async (message: string, botResponse?: BotResponse) => {
     if (!message.trim()) return;
 
-    const userMessage: ConversationMessage = { user: message };
-    setConversation((prev) => [...prev, userMessage]); // Ensure the user message is added locally
     setInput('');
     setIsLoading(true);
 
     if (isAwaitingEmail) {
-      // Process the email
+      // We are awaiting email
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (emailRegex.test(message.trim())) {
         // Valid email
@@ -279,20 +281,27 @@ export function FashionSearchChat() {
         setIsAwaitingEmail(false);
 
         try {
-          // 1. Call signupUser(email, country)
-          await signupUser(email, userData.country); // Ensure signupUser is called with email and country
+          // Sign up the user
+          await signupUser(email, userData.country);
 
-          // 2. Proceed to createChat
-          const newChat = await createChat(email, conversation);
-          console.log("newChat", newChat);
-          setCurrentChatId(newChat.id);
-          router.replace(`/?chat=${newChat.id}`);
+          if (pendingConversation.length > 0) {
+            // Add pending conversation
+            const updatedConversation = [...conversation, ...[{ user: message }] , ...pendingConversation];
+            setConversation(updatedConversation);
+            setPendingConversation([]);
+            setIsLoading(false);
+            scrollToBottom();
 
-          // 3. Update the chat messages
-          updateChatMessages(newChat.id, [...conversation, userMessage]);
-
-          // 4. Start checking for bot responses
-          startBotResponseChecking(newChat.id);
+            // Create chat
+            const newChat = await createChat(email, updatedConversation);
+            setCurrentChatId(newChat.id);
+            router.replace(`/?chat=${newChat.id}`);
+            return;
+          } else {
+            // No pending messages
+            setIsLoading(false);
+            return;
+          }
         } catch (error) {
           console.error('Error during signup or creating chat:', error);
           const botMessage: ConversationMessage = { bot: { message: getLocalizedText(userLanguage, "createChatError"), "in-progress": false } };
@@ -302,68 +311,93 @@ export function FashionSearchChat() {
       } else {
         // Invalid email
         const botMessage: ConversationMessage = { bot: { message: getLocalizedText(userLanguage, "invalidEmail"), "in-progress": false } };
-        setConversation(prev => [...prev, botMessage]);
+        setConversation(prev => [...prev, botMessage ]);
         setIsLoading(false);
       }
       return;
     }
 
-    const checkAndUpdate = async (chatId: string | null) => {
-      const currentConversation = [...conversation, userMessage];
+    if (botResponse) {
+      // This is an example prompt with a hardcoded bot response
+      const userMessage: ConversationMessage = { user: message };
+      const botMessage: ConversationMessage = { bot: { message: botResponse, "in-progress": false } };
 
-      // Check first if enough preferences
-      const result = await checkChat(currentConversation, userLanguage);
-      console.log("result.response", result.response);
-
-      if (result.response === 'OK') {
-        if (chatId) {
-          // Call updateChat to save the conversation
-          updateChatMessages(chatId, currentConversation);
-          // Start checking for bot responses
-          startBotResponseChecking(chatId);
-        } else {
-          if (userData.email) {
-            // We can create the chat now
-            try {
-              // 1. Call signupUser(email, country) if not already signed up
-              await signupUser(userData.email, userData.country); // Ensure signupUser is called
-
-              // 2. Create the chat
-              const newChat = await createChat(userData.email, currentConversation);
-              console.log("newChat", newChat);
-              setCurrentChatId(newChat.id);
-              router.replace(`/?chat=${newChat.id}`);
-              // 3. Update the chat messages
-              updateChatMessages(newChat.id, currentConversation);
-              // 4. Start checking for bot responses
-              startBotResponseChecking(newChat.id);
-            } catch (error) {
-              console.error('Error starting new chat:', error);
-              const botMessage: ConversationMessage = { bot: { message: getLocalizedText(userLanguage, "createChatError"), "in-progress": false } };
-              setConversation(prev => [...prev, botMessage]);
-              setIsLoading(false);
-            }
-          } else {
-            // Ask for email
-            const botMessage: ConversationMessage = { bot: { message: getLocalizedText(userLanguage, "askEmail"), "in-progress": false } };
-            setConversation(prev => [...prev, botMessage]);
-            setIsAwaitingEmail(true);
-            setIsLoading(false);
-          }
-        }
-      } else {
-        // display result.response message on the chat and keep track of that locally for when we call updateChat later
-        const botMessage: ConversationMessage = { bot: { message: result.response, "in-progress": false } };
-        setConversation(prev => [...prev, botMessage]);
+      if (!userData.email) {
+        // Ask for email
+        const emailPrompt: ConversationMessage = { bot: { message: getLocalizedText(userLanguage, "askEmail"), "in-progress": false } };
+        setConversation(prev => [...prev, userMessage, emailPrompt]);
+        setIsAwaitingEmail(true);
+        // Store pending conversation
+        setPendingConversation([botMessage]);
         setIsLoading(false);
+        return;
+      } else {
+        // Email is set, proceed to add messages and create chat
+        const updatedConversation = [...conversation, userMessage, botMessage];
+        setConversation(updatedConversation);
+        setIsLoading(false);
+        scrollToBottom();
+
+        // Create chat
+        try {
+          const newChat = await createChat(userData.email, updatedConversation);
+          setCurrentChatId(newChat.id);
+          router.replace(`/?chat=${newChat.id}`);
+        } catch (error) {
+          console.error('Error creating chat after example prompt:', error);
+          const errorBotMessage: ConversationMessage = { bot: { message: getLocalizedText(userLanguage, "createChatError"), "in-progress": false } };
+          setConversation(prev => [...prev, errorBotMessage]);
+          setIsLoading(false);
+        }
+        return;
       }
     }
 
-    if (!currentChatId) {
-      // We need to process locally until we have enough information
-      await checkAndUpdate(null);
+    // Proceed with normal message handling
+    const userMessage: ConversationMessage = { user: message };
+    const currentConversation = [...conversation, userMessage];
+    setConversation(currentConversation);
+
+    if (!userData.email) {
+      // Ask for email
+      const botMessage: ConversationMessage = { bot: { message: getLocalizedText(userLanguage, "askEmail"), "in-progress": false } };
+      setConversation(prev => [...prev, botMessage ]);
+      setIsAwaitingEmail(true);
+      setPendingConversation([]);
+      setIsLoading(false);
+      return;
+    }
+
+    // Check if enough preferences
+    const result = await checkChat(currentConversation, userLanguage);
+    console.log("result.response", result.response);
+
+    if (result.response === 'OK') {
+      if (currentChatId) {
+        // Update chat
+        updateChatMessages(currentChatId, currentConversation);
+        startBotResponseChecking(currentChatId);
+      } else {
+        try {
+          // Create chat
+          await signupUser(userData.email, userData.country);
+          const newChat = await createChat(userData.email, currentConversation);
+          setCurrentChatId(newChat.id);
+          router.replace(`/?chat=${newChat.id}`);
+          updateChatMessages(newChat.id, currentConversation);
+          startBotResponseChecking(newChat.id);
+        } catch (error) {
+          console.error('Error starting new chat:', error);
+          const botMessage: ConversationMessage = { bot: { message: getLocalizedText(userLanguage, "createChatError"), "in-progress": false } };
+          setConversation(prev => [...prev, botMessage ]);
+          setIsLoading(false);
+        }
+      }
     } else {
-      await checkAndUpdate(currentChatId);
+      // Display result.response message on the chat
+      const botMessage: ConversationMessage = { bot: { message: result.response, "in-progress": false } };
+      setConversation(prev => [...prev, botMessage ]);
+      setIsLoading(false);
     }
   };
 
@@ -389,7 +423,7 @@ export function FashionSearchChat() {
     })
     .catch(error => {
       console.error('Error updating chat:', error);
-      setIsLoading(false);
+      // Do not set isLoading to false here
     });
   };
 
@@ -476,30 +510,204 @@ export function FashionSearchChat() {
     }
   };
 
-  const handleExampleClick = (promptKey: keyof LocalizationStrings) => {
-    setIsLoading(true);
-    setConversation([{"user": getLocalizedText(userLanguage, promptKey)}]);
-    setInput(''); // Clear input
-    setTimeout(() => setIsLoading(false), 5000);
+  /**
+   * Handles example prompt clicks by sending the prompt and setting a hardcoded bot response.
+   * @param promptKey The key of the example prompt.
+   */
+  const handleExampleClick = async (promptKey: keyof LocalizationStrings) => {
+    const promptText = getLocalizedText(userLanguage, promptKey);
+    let hardcodedResponse: BotResponse = [];
+
+    // Define hardcoded responses based on promptKey and userLanguage
     if (promptKey === "examplePrompt1") {
       if(userLanguage === "brazilian_portuguese") {
-        setTimeout(() => router.replace(`/?chat=703666cd-a72e-4a10-b4ac-a4155520952a`), 5000);
+        hardcodedResponse = [
+          {
+            "score": 95,
+            "product": {
+              "link": "https://www.lojasrenner.com.br/p/vestido-new-midi-em-linho-com-estampa-tropical-e-alcas-finas/-/A-834045598-br.lr",
+              "image": "https://img.lojasrenner.com.br/item/880249217/original/3.jpg",
+              "title": "Vestido New Midi em Linho com Estampa Tropical e Alças Finas Off ...",
+              "snippet": "Comprar junto. Avaliações. A Trustvox certifica que a nota média da loja Lojas Renner é. 4.7. Nota da Loja Lojas Renner. Calculamos a média com base em 433190 ...",
+              "imageUrlsWithoutScreenshot": [
+                "https://img.lojasrenner.com.br/item/880249217/original/3.jpg"
+              ]
+            },
+            "explanation": "Esse vestido possui alças finas e uma estampa tropical encantadora, ideal para quem busca um look leve e despojado, perfeito para os dias quentes. É uma ótima escolha!"
+          },
+          {
+            "score": 90,
+            "product": {
+              "link": "https://www.lojasrenner.com.br/ashua/p/vestido-curto-em-cotton-com-alcas-finas/-/A-630605901-COR630605901-17-3924TCX.br.lr?sku=927501863",
+              "image": "https://img.lojasrenner.com.br/item/927501871/medium/3.jpg",
+              "title": "Vestido Curto em Cotton com Alças Finas Lilás - Renner",
+              "snippet": "Vestido curto, confeccionado em cotton, com alças finas e decote reto. Vestido feminino Modelo curto Básico Decote reto Alças finas Sem estampa Processo ...",
+              "imageUrlsWithoutScreenshot": [
+                "https://img.lojasrenner.com.br/item/927501871/medium/3.jpg"
+              ]
+            },
+            "explanation": "O vestido possui alças finas e é curto, atendendo perfeitamente à sua procura. Seu tecido em cotton é confortável e versátil, ideal para diversas ocasiões."
+          }
+        ];
       } else {
-        setTimeout(() => router.replace(`/?chat=f5c9bc8a-fb8d-41cc-9041-942e59b51261`), 5000);
+        hardcodedResponse = [
+          {
+            "score": 90,
+            "product": {
+              "link": "https://www.amazon.co.uk/Lulus-Shoulder-Bodycon-Cocktail-V-Neckline/dp/B0CL98JT6L",
+              "image": "https://m.media-amazon.com/images/I/61LjbjuCT3L._AC_UY1000_.jpg",
+              "title": "Lulus Women's Love So Sweet Off-The-Shoulder Bodycon Cocktail ...",
+              "snippet": "Lulus Women's Love So Sweet Off-The-Shoulder Bodycon Cocktail Dress with Skinny Straps and V-Neckline, Hunter Green, Hunter Green, XS : Amazon.co.uk: ...",
+              "imageUrlsWithoutScreenshot": [
+                "https://m.media-amazon.com/images/I/61LjbjuCT3L._AC_UY1000_.jpg"
+              ]
+            },
+            "explanation": "This dress perfectly fits your preference with thin shoulder straps and a chic bodycon style. It's stylish and flattering, making it a great choice for cocktail events."
+          },
+          {
+            "score": 90,
+            "product": {
+              "link": "https://www.patagonia.com/product/womens-wear-with-all-wrap-dress/75220.html",
+              "image": "https://www.patagonia.com/contents/patagonia.com/en_US/banners/actionworks.jpg",
+              "title": "Patagonia Women's Wear With All Wrap Dress",
+              "snippet": "This flattering skinny strap dress is made of 55% hemp and 45% organic cotton jersey and wraps around the waist for a flattering and customizable fit.",
+              "imageUrlsWithoutScreenshot": [
+                "https://www.patagonia.com/contents/patagonia.com/en_US/banners/actionworks.jpg"
+              ]
+            },
+            "explanation": "This dress meets your preference for thin shoulder straps and also offers a customizable fit, making it both flattering and versatile for various occasions."
+          }
+        ];
       }
     } else if (promptKey === "examplePrompt2") {
       if(userLanguage === "brazilian_portuguese") {
-        setTimeout(() => router.replace(`/?chat=c0882bdb-f216-4e9f-be9a-49d2ee120842`), 5000);
+        hardcodedResponse = [
+          {
+            "score": 100,
+            "product": {
+              "link": "https://www.netshoes.com.br/shorts/adidas/rosa",
+              "image": "https://static.netshoes.com.br/bnn/l_netshoes/2024-10-07/9740_netshoes-share.png",
+              "title": "Shorts Adidas Rosa | Netshoes",
+              "snippet": "Receba rápido este produto saindo direto do Centro de Distribuição da Netshoes. Short Adidas Pacer Knit Feminino. R$ 149,99. ou 3x de R$ 50,00. LANÇAMENTO.",
+              "imageUrlsWithoutScreenshot": [
+                "https://static.netshoes.com.br/bnn/l_netshoes/2024-10-07/9740_netshoes-share.png"
+              ]
+            },
+            "explanation": "Recomendo! O Short Adidas Pacer Knit Feminino na cor rosa é ideal para corrida, combinando estilo e conforto, perfeito para mulheres ativas."
+          },
+          {
+            "score": 80,
+            "product": {
+              "link": "https://www.yellowtreestore.com.br/shorts-fitness-feminino-yellow-tree-rosa/p/a106",
+              "image": "https://static.yellowtreestore.com.br/public/yellowtreestore/imagens/produtos/shorts-fitness-feminino-yellow-tree-rosa-65e0b2c58e1d9.jpg",
+              "title": "SHORTS FITNESS FEMININO YELLOW TREE ROSA - Yellow Tree",
+              "snippet": "Shorts Fitness A Yellow Tree é uma marca de moda contemporânea, oferecendo uma seleção única de roupas que combinam estilo e conforto.",
+              "imageUrlsWithoutScreenshot": [
+                "https://static.yellowtreestore.com.br/public/yellowtreestore/imagens/produtos/shorts-fitness-feminino-yellow-tree-rosa-65e0b2c58e1d9.jpg"
+              ]
+            },
+            "explanation": "Esse short é uma boa escolha para corrida, mas a cor é rosa claro, o que se alinha parcialmente com sua preferência por \"rosa\". O conforto e o estilo também são bons para atividades físicas."
+          }
+        ];
       } else {
-        setTimeout(() => router.replace(`/?chat=70ddf091-9033-4427-b079-2d6f5dcf7eef`), 5000);
+        // Hardcoded responses for other languages (e.g., English)
+        hardcodedResponse = [
+          {
+            "score": 95,
+            "product": {
+              "link": "https://www.nike.com/t/tempo-womens-running-shorts-0DGW8C",
+              "image": "https://static.nike.com/a/images/t_PDP_1280_v1/f_auto,q_auto:eco/a3a5022c-0c42-4041-85f1-dfda4bde5395/tempo-womens-running-shorts-0DGW8C.png",
+              "title": "Nike Tempo Women's Running Shorts",
+              "snippet": "The Nike Tempo Shorts deliver a classic fit with sweat-wicking technology and a trimmed-up design that moves with you.",
+              "imageUrlsWithoutScreenshot": [
+                "https://static.nike.com/a/images/t_PDP_1280_v1/f_auto,q_auto:eco/a3a5022c-0c42-4041-85f1-dfda4bde5395/tempo-womens-running-shorts-0DGW8C.png"
+              ]
+            },
+            "explanation": "These pink running shorts from Nike are lightweight and perfect for your runs. They offer comfort and style, matching your preference."
+          },
+          {
+            "score": 90,
+            "product": {
+              "link": "https://www.adidas.com/us/pink-shorts",
+              "image": "https://assets.adidas.com/images/w_600,f_auto,q_auto/6f97c33a8f98447493f2ab7900e6a0ad_9366/Primeblue_Designed_2_Move_Shorts_Pink_GK0358_21_model.jpg",
+              "title": "adidas Primeblue Shorts - Pink",
+              "snippet": "Stay comfortable during your workouts with these pink adidas shorts, featuring breathable fabric and a stylish design.",
+              "imageUrlsWithoutScreenshot": [
+                "https://assets.adidas.com/images/w_600,f_auto,q_auto/6f97c33a8f98447493f2ab7900e6a0ad_9366/Primeblue_Designed_2_Move_Shorts_Pink_GK0358_21_model.jpg"
+              ]
+            },
+            "explanation": "These adidas shorts are great for running, and their pink color matches your preference. They're both functional and fashionable."
+          }
+        ];
       }
     } else if (promptKey === "examplePrompt3") {
       if(userLanguage === "brazilian_portuguese") {
-        setTimeout(() => router.replace(`/?chat=b3c04959-0fb6-4f92-9a3d-5358aff3fd13`), 5000);
+        hardcodedResponse = [
+          {
+            "score": 95,
+            "product": {
+              "link": "https://www.lojasrenner.com.br/p/camisa-social-masculina-azul/-/A-5705019-594",
+              "image": "https://img.lojasrenner.com.br/item/571060971/large/1.jpg",
+              "title": "Camisa Social Masculina Azul - Renner",
+              "snippet": "Camisa social masculina azul com corte slim fit, ideal para eventos formais.",
+              "imageUrlsWithoutScreenshot": [
+                "https://img.lojasrenner.com.br/item/571060971/large/1.jpg"
+              ]
+            },
+            "explanation": "Esta camisa social azul é perfeita para um casamento, oferecendo elegância e conforto."
+          },
+          {
+            "score": 90,
+            "product": {
+              "link": "https://www.zara.com/br/pt/camisa-azul-masculina-p02548254.html",
+              "image": "https://static.zara.net/photos//2023/V/0/2/p/2548/254/405/2/w/750/2548254405_1_1_1.jpg?ts=1615475474215",
+              "title": "Camisa Azul Masculina - Zara",
+              "snippet": "Camisa azul masculina com tecido leve, perfeita para ocasiões especiais.",
+              "imageUrlsWithoutScreenshot": [
+                "https://static.zara.net/photos//2023/V/0/2/p/2548/254/405/2/w/750/2548254405_1_1_1.jpg?ts=1615475474215"
+              ]
+            },
+            "explanation": "Outra excelente opção de camisa azul para usar no casamento."
+          }
+        ];
       } else {
-        setTimeout(() => router.replace(`/?chat=70da7604-3b47-40b4-a8a4-3e8f174566a4`), 5000);
+        // Hardcoded responses for other languages (e.g., English)
+        hardcodedResponse = [
+          {
+            "score": 95,
+            "product": {
+              "link": "https://www.macys.com/shop/product/mens-dress-shirt-blue?ID=12345",
+              "image": "https://slimages.macysassets.com/is/image/MCY/products/8/optimized/1374568_fpx.tif",
+              "title": "Men's Blue Dress Shirt - Macy's",
+              "snippet": "A classic blue dress shirt suitable for formal events like weddings.",
+              "imageUrlsWithoutScreenshot": [
+                "https://slimages.macysassets.com/is/image/MCY/products/8/optimized/1374568_fpx.tif"
+              ]
+            },
+            "explanation": "This blue dress shirt is perfect for your friend's wedding, offering a stylish and formal look."
+          },
+          {
+            "score": 90,
+            "product": {
+              "link": "https://www.hugoboss.com/us/mens-blue-shirt/hbna50260011_100.html",
+              "image": "https://images.hugoboss.com/is/image/boss/hbna50260011_100_100?fit=crop,1&wid=950&hei=950",
+              "title": "Men's Blue Shirt - HUGO BOSS",
+              "snippet": "Elegant blue shirt crafted from premium cotton, ideal for special occasions.",
+              "imageUrlsWithoutScreenshot": [
+                "https://images.hugoboss.com/is/image/boss/hbna50260011_100_100?fit=crop,1&wid=950&hei=950"
+              ]
+            },
+            "explanation": "An excellent choice for a wedding, this blue shirt combines comfort with sophistication."
+          }
+        ];
       }
     }
+
+    // Reset currentChatId to ensure a new chat is created
+    setCurrentChatId(null);
+
+    // Send the prompt text as a user message, along with the hardcoded bot response
+    await sendMessage(promptText, hardcodedResponse);
   };
 
   const lastBotMessage = conversation.map((msg) => msg.bot).filter(Boolean).pop();
@@ -649,10 +857,10 @@ export function FashionSearchChat() {
                   alt="Fashion Search Chat Logo"
                   width={256}
                   unoptimized
-                  className="mb-6"
+                  className="mb-6 max-w-xs md:max-w-sm"
                 />
-                <h1 className="text-4xl font-nunito font-medium mb-2 text-gray-800 font-raleway">{getLocalizedText(userLanguage, "callPrompt")}</h1>
-                <p className="text-xl text-gray-600 mb-8 font-nunito font-medium">{getLocalizedText(userLanguage, "introMessage")}</p>
+                <h1 className="text-2xl md:text-4xl font-nunito font-medium mb-2 text-gray-800 font-raleway">{getLocalizedText(userLanguage, "callPrompt")}</h1>
+                <p className="text-lg md:text-xl text-gray-600 mb-8 font-nunito font-medium">{getLocalizedText(userLanguage, "introMessage")}</p>
                 <div className="space-y-4">
                   <form onSubmit={handleSubmit} className="flex flex-row gap-2 max-w-3xl mx-auto">
                     <textarea
@@ -750,7 +958,7 @@ export function FashionSearchChat() {
                             message.bot.message.length > 0 ? (
                               <div className="space-y-4">
                                 {message.bot.message.map((item: BotMessage, idx: number) => (
-                                  <ProductCard key={idx} product={item.product} explanation={item.explanation} in-progress={false} />
+                                  <ProductCard key={idx} product={item.product} explanation={item.explanation} />
                                 ))}
                               </div>
                             ) : (
@@ -771,14 +979,14 @@ export function FashionSearchChat() {
                   </div>
                 ))}
                 {isLoading && (
-                  <div className="flex items-center gap-4 justify-center p-4">
-                    <div className="relative w-12 h-12">
+                  <div className="flex items-center gap-4 justify-start p-4">
+                    <div className="relative w-12 h-12 md:w-12 md:h-12 flex-shrink-0">
                       <div className="absolute inset-0 border-4 border-[#f6213f] rounded-full animate-ping" />
                       <div className="absolute inset-2 border-4 border-[#f6213f] rounded-full animate-spin" />
-                      <Sparkles className="absolute inset-3 w-6 h-6 text-[#f6213f]" />
+                      <Sparkles className="absolute inset-3 w-5 h-5 md:w-6 md:h-6 text-[#f6213f] m-auto" />
                     </div>
                     {/* Display progress message */}
-                    <span className="text-gray-500 text-lg font-medium font-nunito">
+                    <span className="text-gray-500 text-base md:text-lg font-medium font-nunito flex-1">
                       {(() => {
                         if (lastBotMessage && lastBotMessage["progress-message"]) {
                           return lastBotMessage["progress-message"];
