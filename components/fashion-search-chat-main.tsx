@@ -1,9 +1,5 @@
 "use client";
 
-// api.js
-const API_BASE_URL = 'http://localhost:4000';
-// const API_BASE_URL = 'https://estoque-server-df0876ed2a97.herokuapp.com';
-
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -93,7 +89,7 @@ export function FashionSearchChat() {
   const [input, setInput] = useState('');
   const [userData, setUserData] = useState<UserData>({
     email: '',
-    country: 'br', // default value
+    country: 'us', // default value
   });
   
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -190,7 +186,7 @@ export function FashionSearchChat() {
   const handleNewChat = async () => {
     setCurrentChatId(null);
     setConversation([]);
-    router.push('/');
+    router.push('/main'); // Navigate to the root without a chatId
   };
 
   const scrollToBottom = () => {
@@ -263,6 +259,7 @@ export function FashionSearchChat() {
         </CardFooter>
       </Card>
     );
+
   };
 
   /**
@@ -301,12 +298,13 @@ export function FashionSearchChat() {
             // Create chat
             const newChat = await createChat(email, updatedConversation);
             setCurrentChatId(newChat.id);
-            router.replace(`/?chat=${newChat.id}`);
+            router.replace(`main/?chat=${newChat.id}`);
             return;
           } else {
             // No pending messages
             // Add user's email message to conversation
-            const updatedConversation = [...conversation, { user: message }];
+            const betaBotMessage: ConversationMessage = { bot: { message: getLocalizedText(userLanguage, "emailBetaPrompt"), "in-progress": false } };
+            const updatedConversation = [...conversation, { user: message }, betaBotMessage];
             setConversation(updatedConversation);
             setIsLoading(false);
             scrollToBottom();
@@ -315,7 +313,7 @@ export function FashionSearchChat() {
             try {
               const newChat = await createChat(email, updatedConversation);
               setCurrentChatId(newChat.id);
-              router.replace(`/?chat=${newChat.id}`);
+              router.replace(`main/?chat=${newChat.id}`);
             } catch (error) {
               console.error('Error creating chat:', error);
               const errorBotMessage: ConversationMessage = { bot: { message: getLocalizedText(userLanguage, "createChatError"), "in-progress": false } };
@@ -364,7 +362,7 @@ export function FashionSearchChat() {
         try {
           const newChat = await createChat(userData.email, updatedConversation);
           setCurrentChatId(newChat.id);
-          router.replace(`/?chat=${newChat.id}`);
+          router.replace(`main/?chat=${newChat.id}`);
         } catch (error) {
           console.error('Error creating chat after example prompt:', error);
           const errorBotMessage: ConversationMessage = { bot: { message: getLocalizedText(userLanguage, "createChatError"), "in-progress": false } };
@@ -397,107 +395,26 @@ export function FashionSearchChat() {
     if (result.response === 'OK') {
       if (currentChatId) {
         // Update chat
-        updateChatMessages(currentChatId, currentConversation);
-        startBotResponseChecking(currentChatId);
-      } else {
-        try {
-          // Create chat
-          await signupUser(userData.email, userData.country);
-          const newChat = await createChat(userData.email, currentConversation);
-          setCurrentChatId(newChat.id);
-          router.replace(`/?chat=${newChat.id}`);
-          updateChatMessages(newChat.id, currentConversation);
-          startBotResponseChecking(newChat.id);
-        } catch (error) {
-          console.error('Error starting new chat:', error);
-          const botMessage: ConversationMessage = { bot: { message: getLocalizedText(userLanguage, "createChatError"), "in-progress": false } };
-          setConversation(prev => [...prev, botMessage ]);
+        setIsLoading(true);
+        setTimeout(() => {
+          const betaBotMessage: ConversationMessage = { bot: { message: getLocalizedText(userLanguage, "emailBetaPrompt"), "in-progress": false } };
+          setConversation(prev => [...prev, betaBotMessage]);
           setIsLoading(false);
-        }
+        }, 3000);
+      } else {
+        // Instead of proceeding to create chat, simulate loading/thinking and show beta message
+        setIsLoading(true);
+        setTimeout(() => {
+          const betaBotMessage: ConversationMessage = { bot: { message: getLocalizedText(userLanguage, "emailBetaPrompt"), "in-progress": false } };
+          setConversation(prev => [...prev, betaBotMessage]);
+          setIsLoading(false);
+        }, 3000);
       }
     } else {
       // Display result.response message on the chat
       const botMessage: ConversationMessage = { bot: { message: result.response, "in-progress": false } };
       setConversation(prev => [...prev, botMessage ]);
       setIsLoading(false);
-    }
-  };
-
-  /**
-   * Updates the chat messages on the server and starts checking for bot responses.
-   * @param chatId The ID of the chat to update.
-   * @param updatedConversation The updated conversation array.
-   */
-  const updateChatMessages = (chatId: string, updatedConversation: ConversationMessage[]) => {
-    // Call updateChat API but don't wait for response
-    fetch(`${API_BASE_URL}/updateChat/${chatId}`, { // Updated URL
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ conversation: updatedConversation, language: userLanguage })
-    })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error('Failed to update chat');
-      }
-      // Optionally handle response
-    })
-    .catch(error => {
-      console.error('Error updating chat:', error);
-      // Do not set isLoading to false here
-    });
-  };
-
-  const startBotResponseChecking = (chatId: string) => {
-    // Clear any existing intervals or timeouts
-    if (botResponseCheckInterval.current) {
-      clearInterval(botResponseCheckInterval.current);
-    }
-    if (botResponseTimeout.current) {
-      clearTimeout(botResponseTimeout.current);
-    }
-
-    // Start the interval to check for bot responses every 5s
-    botResponseCheckInterval.current = setInterval(async () => {
-      try {
-        const chats = await getChats();
-        setConversations(chats);
-
-        // Find the current chat
-        const chat = chats.find((c: { id: string; }) => c.id === chatId);
-        if (chat) {
-          // Update conversation
-          setConversation(chat.conversation);
-          const lastBotMessageIndex = chat.conversation.map((msg: ConversationMessage) => !!msg.bot).lastIndexOf(true);
-          if (lastBotMessageIndex !== -1) {
-            const lastBotMessage = chat.conversation[lastBotMessageIndex].bot;
-            // Check "in-progress" field inside bot
-            if (lastBotMessage && lastBotMessage["in-progress"]) {
-              // Bot is still processing, continue polling
-            } else {
-              // Bot has finished processing, stop polling
-              setIsLoading(false);
-              stopBotResponseChecking();
-            }
-          } else {
-            // No bot message yet, continue polling
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching chats during bot response check:', error);
-      }
-    }, 5000); // Every 5 seconds
-  };
-
-  const stopBotResponseChecking = () => {
-    if (botResponseCheckInterval.current) {
-      clearInterval(botResponseCheckInterval.current);
-      botResponseCheckInterval.current = null;
-    }
-    if (botResponseTimeout.current) {
-      clearTimeout(botResponseTimeout.current);
-      botResponseTimeout.current = null;
     }
   };
 
@@ -821,9 +738,6 @@ export function FashionSearchChat() {
 
   const lastBotMessage = conversation.map((msg) => msg.bot).filter(Boolean).pop();
 
-  console.log("conversations",conversations);
-    console.log("conversation",conversation);
-
   return (
     <div className="flex flex-col md:flex-row min-h-screen w-screen bg-gray-50 text-gray-900 overflow-hidden">
       {/* Sidebar */}
@@ -874,7 +788,7 @@ export function FashionSearchChat() {
             {conversations.filter(conv => currentChatId === conv.id).map((conv) => (
               <button
                 key={conv.id}
-                onClick={() => router.push(`/?chat=${conv.id}`)}
+                onClick={() => router.push(`main/?chat=${conv.id}`)}
                 className={cn(
                   "w-full text-left mb-1 rounded-lg transition-colors duration-200",
                   sidebarOpen ? "p-2 hover:bg-gray-100 flex items-center gap-2" : "p-2 hover:bg-gray-100 flex justify-center"

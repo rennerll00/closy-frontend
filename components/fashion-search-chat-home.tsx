@@ -1,15 +1,11 @@
 "use client";
 
-// api.js
-const API_BASE_URL = 'http://localhost:4000';
-// const API_BASE_URL = 'https://estoque-server-df0876ed2a97.herokuapp.com';
-
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -78,7 +74,26 @@ const timeZoneCityToCountry: { [key: string]: string } = {
   "Sao Paulo": "br",
 };
 
-const exampleMainPromptsKeys: (keyof LocalizationStrings)[] = ["exampleMainPrompt1","exampleMainPrompt2","exampleMainPrompt3","exampleMainPrompt4"];
+const exampleHomePromptsKeys: (keyof LocalizationStrings)[] = [
+  "exampleHomePrompt1",
+  "exampleHomePrompt2",
+  "exampleHomePrompt3",
+  "exampleHomePrompt4",
+  "exampleHomePrompt5",
+  "exampleHomePrompt6",
+  "exampleHomePrompt7",
+  "exampleHomePrompt8",
+  "exampleHomePrompt9",
+  "exampleHomePrompt10",
+  "exampleHomePrompt11",
+  "exampleHomePrompt12",
+  "exampleHomePrompt13",
+  "exampleHomePrompt14",
+  "exampleHomePrompt15",
+  "exampleHomePrompt16",
+  "exampleHomePrompt17",
+  "exampleHomePrompt18",
+];
 
 export function FashionSearchChat() {
   const router = useRouter();
@@ -93,7 +108,7 @@ export function FashionSearchChat() {
   const [input, setInput] = useState('');
   const [userData, setUserData] = useState<UserData>({
     email: '',
-    country: 'br', // default value
+    country: 'us', // default value
   });
   
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -190,7 +205,7 @@ export function FashionSearchChat() {
   const handleNewChat = async () => {
     setCurrentChatId(null);
     setConversation([]);
-    router.push('/');
+    router.push('/home'); // Navigate to the root without a chatId
   };
 
   const scrollToBottom = () => {
@@ -263,6 +278,7 @@ export function FashionSearchChat() {
         </CardFooter>
       </Card>
     );
+
   };
 
   /**
@@ -285,43 +301,27 @@ export function FashionSearchChat() {
         setUserData(prev => ({ ...prev, email }));
         localStorage.setItem('email', email);
         setIsAwaitingEmail(false);
-    
+
         try {
           // Sign up the user
           await signupUser(email, userData.country);
-    
+
           if (pendingConversation.length > 0) {
             // Add pending conversation
-            const updatedConversation = [...conversation, { user: message }, ...pendingConversation];
+            const updatedConversation = [...conversation, ...[{ user: message }] , ...pendingConversation];
             setConversation(updatedConversation);
             setPendingConversation([]);
             setIsLoading(false);
             scrollToBottom();
-    
+
             // Create chat
             const newChat = await createChat(email, updatedConversation);
             setCurrentChatId(newChat.id);
-            router.replace(`/?chat=${newChat.id}`);
+            router.replace(`home/?chat=${newChat.id}`);
             return;
           } else {
             // No pending messages
-            // Add user's email message to conversation
-            const updatedConversation = [...conversation, { user: message }];
-            setConversation(updatedConversation);
             setIsLoading(false);
-            scrollToBottom();
-    
-            // Create chat
-            try {
-              const newChat = await createChat(email, updatedConversation);
-              setCurrentChatId(newChat.id);
-              router.replace(`/?chat=${newChat.id}`);
-            } catch (error) {
-              console.error('Error creating chat:', error);
-              const errorBotMessage: ConversationMessage = { bot: { message: getLocalizedText(userLanguage, "createChatError"), "in-progress": false } };
-              setConversation(prev => [...prev, errorBotMessage]);
-              setIsLoading(false);
-            }
             return;
           }
         } catch (error) {
@@ -333,7 +333,7 @@ export function FashionSearchChat() {
       } else {
         // Invalid email
         const botMessage: ConversationMessage = { bot: { message: getLocalizedText(userLanguage, "invalidEmail"), "in-progress": false } };
-        setConversation(prev => [...prev, botMessage]);
+        setConversation(prev => [...prev, botMessage ]);
         setIsLoading(false);
       }
       return;
@@ -364,7 +364,7 @@ export function FashionSearchChat() {
         try {
           const newChat = await createChat(userData.email, updatedConversation);
           setCurrentChatId(newChat.id);
-          router.replace(`/?chat=${newChat.id}`);
+          router.replace(`home/?chat=${newChat.id}`);
         } catch (error) {
           console.error('Error creating chat after example prompt:', error);
           const errorBotMessage: ConversationMessage = { bot: { message: getLocalizedText(userLanguage, "createChatError"), "in-progress": false } };
@@ -397,107 +397,26 @@ export function FashionSearchChat() {
     if (result.response === 'OK') {
       if (currentChatId) {
         // Update chat
-        updateChatMessages(currentChatId, currentConversation);
-        startBotResponseChecking(currentChatId);
-      } else {
-        try {
-          // Create chat
-          await signupUser(userData.email, userData.country);
-          const newChat = await createChat(userData.email, currentConversation);
-          setCurrentChatId(newChat.id);
-          router.replace(`/?chat=${newChat.id}`);
-          updateChatMessages(newChat.id, currentConversation);
-          startBotResponseChecking(newChat.id);
-        } catch (error) {
-          console.error('Error starting new chat:', error);
-          const botMessage: ConversationMessage = { bot: { message: getLocalizedText(userLanguage, "createChatError"), "in-progress": false } };
-          setConversation(prev => [...prev, botMessage ]);
+        setIsLoading(true);
+        setTimeout(() => {
+          const betaBotMessage: ConversationMessage = { bot: { message: getLocalizedText(userLanguage, "emailBetaPrompt"), "in-progress": false } };
+          setConversation(prev => [...prev, betaBotMessage]);
           setIsLoading(false);
-        }
+        }, 3000);
+      } else {
+        // Instead of proceeding to create chat, simulate loading/thinking and show beta message
+        setIsLoading(true);
+        setTimeout(() => {
+          const betaBotMessage: ConversationMessage = { bot: { message: getLocalizedText(userLanguage, "emailBetaPrompt"), "in-progress": false } };
+          setConversation(prev => [...prev, betaBotMessage]);
+          setIsLoading(false);
+        }, 3000);
       }
     } else {
       // Display result.response message on the chat
       const botMessage: ConversationMessage = { bot: { message: result.response, "in-progress": false } };
       setConversation(prev => [...prev, botMessage ]);
       setIsLoading(false);
-    }
-  };
-
-  /**
-   * Updates the chat messages on the server and starts checking for bot responses.
-   * @param chatId The ID of the chat to update.
-   * @param updatedConversation The updated conversation array.
-   */
-  const updateChatMessages = (chatId: string, updatedConversation: ConversationMessage[]) => {
-    // Call updateChat API but don't wait for response
-    fetch(`${API_BASE_URL}/updateChat/${chatId}`, { // Updated URL
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ conversation: updatedConversation, language: userLanguage })
-    })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error('Failed to update chat');
-      }
-      // Optionally handle response
-    })
-    .catch(error => {
-      console.error('Error updating chat:', error);
-      // Do not set isLoading to false here
-    });
-  };
-
-  const startBotResponseChecking = (chatId: string) => {
-    // Clear any existing intervals or timeouts
-    if (botResponseCheckInterval.current) {
-      clearInterval(botResponseCheckInterval.current);
-    }
-    if (botResponseTimeout.current) {
-      clearTimeout(botResponseTimeout.current);
-    }
-
-    // Start the interval to check for bot responses every 5s
-    botResponseCheckInterval.current = setInterval(async () => {
-      try {
-        const chats = await getChats();
-        setConversations(chats);
-
-        // Find the current chat
-        const chat = chats.find((c: { id: string; }) => c.id === chatId);
-        if (chat) {
-          // Update conversation
-          setConversation(chat.conversation);
-          const lastBotMessageIndex = chat.conversation.map((msg: ConversationMessage) => !!msg.bot).lastIndexOf(true);
-          if (lastBotMessageIndex !== -1) {
-            const lastBotMessage = chat.conversation[lastBotMessageIndex].bot;
-            // Check "in-progress" field inside bot
-            if (lastBotMessage && lastBotMessage["in-progress"]) {
-              // Bot is still processing, continue polling
-            } else {
-              // Bot has finished processing, stop polling
-              setIsLoading(false);
-              stopBotResponseChecking();
-            }
-          } else {
-            // No bot message yet, continue polling
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching chats during bot response check:', error);
-      }
-    }, 5000); // Every 5 seconds
-  };
-
-  const stopBotResponseChecking = () => {
-    if (botResponseCheckInterval.current) {
-      clearInterval(botResponseCheckInterval.current);
-      botResponseCheckInterval.current = null;
-    }
-    if (botResponseTimeout.current) {
-      clearTimeout(botResponseTimeout.current);
-      botResponseTimeout.current = null;
     }
   };
 
@@ -533,283 +452,196 @@ export function FashionSearchChat() {
   };
 
   /**
-  * Handles example prompt clicks by sending the prompt and setting a hardcoded bot response.
-  * @param promptKey The key of the example prompt.
-  */
+   * Handles example prompt clicks by sending the prompt and setting a hardcoded bot response.
+   * @param promptKey The key of the example prompt.
+   */
   const handleExampleClick = async (promptKey: keyof LocalizationStrings) => {
     const promptText = getLocalizedText(userLanguage, promptKey);
     let hardcodedResponse: BotResponse = [];
 
     // Define hardcoded responses based on promptKey and userLanguage
-    switch (promptKey) {
-      case "exampleMainPrompt1": // Pink Floral Print Short Dress with Sleeves
-        if (userLanguage === "brazilian_portuguese") {
-          hardcodedResponse = [
-            {
-              "score": 95,
-              "product": {
-                "link": "https://www.zimmermann.com/us/tops-tank-cami/mini-dresses/lightburst-cut-out-mini-dress-red-floral.html",
-                "image": "https://www.zimmermann.com/media/catalog/product/1/_/1.1899dss246.refl.red-floral.jpg?quality=100&bg-color=255,255,255&fit=bounds&height=755&width=581&canvas=581:755",
-                "title": "Vestido Mini Floral Lightburst com Recortes - Zimmermann",
-                "snippet": "Este vestido mini de floral com recortes elegantes é perfeito para ocasiões especiais, oferecendo um toque de sofisticação e estilo.",
-                "imageUrlsWithoutScreenshot": [
-                  "https://www.zimmermann.com/media/catalog/product/1/_/1.1899dss246.refl.red-floral.jpg?quality=100&bg-color=255,255,255&fit=bounds&height=755&width=581&canvas=581:755",
-                  "https://www.zimmermann.com/media/catalog/product/3/_/3.1899dss246.refl.red-floral.jpg?quality=100&bg-color=255,255,255&fit=bounds&height=755&width=581&canvas=581:755"
-                ]
-              },
-              "explanation": "Este vestido mini floral combina elegância e modernidade com seus recortes estratégicos, ideal para festas e eventos noturnos."
+    if (promptKey === "exampleHomePrompt1") {
+      if(userLanguage === "brazilian_portuguese") {
+        hardcodedResponse = [
+          {
+            "score": 95,
+            "product": {
+              "link": "https://www.lojasrenner.com.br/p/vestido-new-midi-em-linho-com-estampa-tropical-e-alcas-finas/-/A-834045598-br.lr",
+              "image": "https://img.lojasrenner.com.br/item/880249217/original/3.jpg",
+              "title": "Vestido New Midi em Linho com Estampa Tropical e Alças Finas Off ...",
+              "snippet": "Comprar junto. Avaliações. A Trustvox certifica que a nota média da loja Lojas Renner é. 4.7. Nota da Loja Lojas Renner. Calculamos a média com base em 433190 ...",
+              "imageUrlsWithoutScreenshot": [
+                "https://img.lojasrenner.com.br/item/880249217/original/3.jpg"
+              ]
             },
-            {
-              "score": 90,
-              "product": {
-                "link": "https://www.zimmermann.com/us/tops-tank-cami/mini-dresses/waverly-wrap-mini-dress-cream-pink-bird.html",
-                "image": "https://www.zimmermann.com/media/catalog/product/1/_/1.1469dss243.cpb.cream-pink-bird.jpg?quality=100&bg-color=255,255,255&fit=bounds&height=755&width=581&canvas=581:755",
-                "title": "Vestido Mini Envolvente Waverly em Creme com Pássaros Cor-de-Rosa - Zimmermann",
-                "snippet": "O vestido Waverly Wrap apresenta uma estampa delicada de pássaros cor-de-rosa sobre um fundo creme, oferecendo um visual romântico e feminino.",
-                "imageUrlsWithoutScreenshot": [
-                  "https://www.zimmermann.com/media/catalog/product/1/_/1.1469dss243.cpb.cream-pink-bird.jpg?quality=100&bg-color=255,255,255&fit=bounds&height=755&width=581&canvas=581:755",
-                  "https://www.zimmermann.com/media/catalog/product/3/_/3.1469dss243.cpb.cream-pink-bird.jpg?quality=100&bg-color=255,255,255&fit=bounds&height=755&width=581&canvas=581:755"
-                ]
-              },
-              "explanation": "Com sua estampa encantadora e design envolvente, este vestido é perfeito para um look diurno sofisticado e confortável."
-            }
-          ];
-        } else {
-          // Hardcoded responses for other languages (e.g., English)
-          hardcodedResponse = [
-            {
-              "score": 95,
-              "product": {
-                "link": "https://www.zimmermann.com/us/tops-tank-cami/mini-dresses/lightburst-cut-out-mini-dress-red-floral.html",
-                "image": "https://www.zimmermann.com/media/catalog/product/1/_/1.1899dss246.refl.red-floral.jpg?quality=100&bg-color=255,255,255&fit=bounds&height=755&width=581&canvas=581:755",
-                "title": "Lightburst Cut-Out Mini Dress Red Floral - Zimmermann",
-                "snippet": "This red floral mini dress with elegant cut-outs is perfect for special occasions, offering a touch of sophistication and style.",
-                "imageUrlsWithoutScreenshot": [
-                  "https://www.zimmermann.com/media/catalog/product/1/_/1.1899dss246.refl.red-floral.jpg?quality=100&bg-color=255,255,255&fit=bounds&height=755&width=581&canvas=581:755",
-                  "https://www.zimmermann.com/media/catalog/product/3/_/3.1899dss246.refl.red-floral.jpg?quality=100&bg-color=255,255,255&fit=bounds&height=755&width=581&canvas=581:755"
-                ]
-              },
-              "explanation": "This floral mini dress combines elegance and modernity with its strategic cut-outs, ideal for evening parties and events."
+            "explanation": "Esse vestido possui alças finas e uma estampa tropical encantadora, ideal para quem busca um look leve e despojado, perfeito para os dias quentes. É uma ótima escolha!"
+          },
+          {
+            "score": 90,
+            "product": {
+              "link": "https://www.lojasrenner.com.br/ashua/p/vestido-curto-em-cotton-com-alcas-finas/-/A-630605901-COR630605901-17-3924TCX.br.lr?sku=927501863",
+              "image": "https://img.lojasrenner.com.br/item/927501871/medium/3.jpg",
+              "title": "Vestido Curto em Cotton com Alças Finas Lilás - Renner",
+              "snippet": "Vestido curto, confeccionado em cotton, com alças finas e decote reto. Vestido feminino Modelo curto Básico Decote reto Alças finas Sem estampa Processo ...",
+              "imageUrlsWithoutScreenshot": [
+                "https://img.lojasrenner.com.br/item/927501871/medium/3.jpg"
+              ]
             },
-            {
-              "score": 90,
-              "product": {
-                "link": "https://www.zimmermann.com/us/tops-tank-cami/mini-dresses/waverly-wrap-mini-dress-cream-pink-bird.html",
-                "image": "https://www.zimmermann.com/media/catalog/product/1/_/1.1469dss243.cpb.cream-pink-bird.jpg?quality=100&bg-color=255,255,255&fit=bounds&height=755&width=581&canvas=581:755",
-                "title": "Waverly Wrap Mini Dress Cream Pink Bird - Zimmermann",
-                "snippet": "The Waverly Wrap Dress features a delicate pink bird print on a cream background, offering a romantic and feminine look.",
-                "imageUrlsWithoutScreenshot": [
-                  "https://www.zimmermann.com/media/catalog/product/1/_/1.1469dss243.cpb.cream-pink-bird.jpg?quality=100&bg-color=255,255,255&fit=bounds&height=755&width=581&canvas=581:755",
-                  "https://www.zimmermann.com/media/catalog/product/3/_/3.1469dss243.cpb.cream-pink-bird.jpg?quality=100&bg-color=255,255,255&fit=bounds&height=755&width=581&canvas=581:755"
-                ]
-              },
-              "explanation": "With its charming print and wrap design, this dress is perfect for a sophisticated daytime look that is both stylish and comfortable."
-            }
-          ];
-        }
-        break;
-
-      case "exampleMainPrompt2": // Military Green Cargo Pants with Side Pockets
-        if (userLanguage === "brazilian_portuguese") {
-          hardcodedResponse = [
-            {
-              "score": 95,
-              "product": {
-                "link": "https://www.celine.com/en-us/celine-shop-women/ready-to-wear/pants-and-shorts/cargo-pants-in-cotton-linen-2Z552219I.02MK.html",
-                "image": "https://twicpics.celine.com/product-prd/images/large/2Z552219I.02MK_1_SS24_W.jpg?twic=v1/cover=1:1/resize-max=900",
-                "title": "Calças Cargo em Algodão e Linho - Celine",
-                "snippet": "Calças cargo elegantes em algodão e linho, com bolsos laterais profundos para um estilo utilitário sofisticado.",
-                "imageUrlsWithoutScreenshot": [
-                  "https://twicpics.celine.com/product-prd/images/large/2Z552219I.02MK_1_SS24_W.jpg?twic=v1/cover=1:1/resize-max=900",
-                  "https://twicpics.celine.com/product-prd/images/large/2Z552219I.02MK_3_SS24_W.jpg?twic=v1/cover=820x820/max=2000"
-                ]
-              },
-              "explanation": "Estas calças cargo combinam funcionalidade com estilo, perfeitas para um visual urbano e moderno."
+            "explanation": "O vestido possui alças finas e é curto, atendendo perfeitamente à sua procura. Seu tecido em cotton é confortável e versátil, ideal para diversas ocasiões."
+          }
+        ];
+      } else {
+        hardcodedResponse = [
+          {
+            "score": 90,
+            "product": {
+              "link": "https://www.amazon.co.uk/Lulus-Shoulder-Bodycon-Cocktail-V-Neckline/dp/B0CL98JT6L",
+              "image": "https://m.media-amazon.com/images/I/61LjbjuCT3L._AC_UY1000_.jpg",
+              "title": "Lulus Women's Love So Sweet Off-The-Shoulder Bodycon Cocktail ...",
+              "snippet": "Lulus Women's Love So Sweet Off-The-Shoulder Bodycon Cocktail Dress with Skinny Straps and V-Neckline, Hunter Green, Hunter Green, XS : Amazon.co.uk: ...",
+              "imageUrlsWithoutScreenshot": [
+                "https://m.media-amazon.com/images/I/61LjbjuCT3L._AC_UY1000_.jpg"
+              ]
             },
-            {
-              "score": 90,
-              "product": {
-                "link": "https://citizensofhumanity.com/products/marcelle-low-slung-easy-cargo-corduroy-costes",
-                "image": "https://citizensofhumanity.com/cdn/shop/files/2078-041_MARCELLE_CARGO_CORDUROY_COSTES_1274_d5113432-987c-4647-8695-efad45aba9f6.jpg?v=1720644296",
-                "title": "Calças Cargo de Corduroy Marcelle - Citizens of Humanity",
-                "snippet": "Calças cargo de corduroy de corte baixo, oferecendo conforto e estilo casual com bolsos utilitários.",
-                "imageUrlsWithoutScreenshot": [
-                  "https://citizensofhumanity.com/cdn/shop/files/2078-041_MARCELLE_CARGO_CORDUROY_COSTES_1274_d5113432-987c-4647-8695-efad45aba9f6.jpg?v=1720644296",
-                  "https://citizensofhumanity.com/cdn/shop/files/2078-041_MARCELLE_CARGO_CORDUROY_COSTES_1286_b195736c-99b0-44e4-a3a4-fa7b8f1213ba.jpg?v=1720644296"
-                ]
-              },
-              "explanation": "Estas calças cargo de corduroy adicionam textura e profundidade ao seu guarda-roupa casual, mantendo a praticidade dos bolsos laterais."
-            }
-          ];
-        } else {
-          // Hardcoded responses for other languages (e.g., English)
-          hardcodedResponse = [
-            {
-              "score": 95,
-              "product": {
-                "link": "https://www.celine.com/en-us/celine-shop-women/ready-to-wear/pants-and-shorts/cargo-pants-in-cotton-linen-2Z552219I.02MK.html",
-                "image": "https://twicpics.celine.com/product-prd/images/large/2Z552219I.02MK_1_SS24_W.jpg?twic=v1/cover=1:1/resize-max=900",
-                "title": "Cotton Linen Cargo Pants - Celine",
-                "snippet": "Elegant cargo pants made from cotton and linen, featuring deep side pockets for a sophisticated utilitarian style.",
-                "imageUrlsWithoutScreenshot": [
-                  "https://twicpics.celine.com/product-prd/images/large/2Z552219I.02MK_1_SS24_W.jpg?twic=v1/cover=1:1/resize-max=900",
-                  "https://twicpics.celine.com/product-prd/images/large/2Z552219I.02MK_3_SS24_W.jpg?twic=v1/cover=820x820/max=2000"
-                ]
-              },
-              "explanation": "These cargo pants blend functionality with style, perfect for an urban and modern look."
+            "explanation": "This dress perfectly fits your preference with thin shoulder straps and a chic bodycon style. It's stylish and flattering, making it a great choice for cocktail events."
+          },
+          {
+            "score": 90,
+            "product": {
+              "link": "https://www.patagonia.com/product/womens-wear-with-all-wrap-dress/75220.html",
+              "image": "https://www.patagonia.com/contents/patagonia.com/en_US/banners/actionworks.jpg",
+              "title": "Patagonia Women's Wear With All Wrap Dress",
+              "snippet": "This flattering skinny strap dress is made of 55% hemp and 45% organic cotton jersey and wraps around the waist for a flattering and customizable fit.",
+              "imageUrlsWithoutScreenshot": [
+                "https://www.patagonia.com/contents/patagonia.com/en_US/banners/actionworks.jpg"
+              ]
             },
-            {
-              "score": 90,
-              "product": {
-                "link": "https://citizensofhumanity.com/products/marcelle-low-slung-easy-cargo-corduroy-costes",
-                "image": "https://citizensofhumanity.com/cdn/shop/files/2078-041_MARCELLE_CARGO_CORDUROY_COSTES_1274_d5113432-987c-4647-8695-efad45aba9f6.jpg?v=1720644296",
-                "title": "Marcelle Low-Slung Easy Cargo Corduroy Pants - Citizens of Humanity",
-                "snippet": "Low-slung cargo corduroy pants offering comfort and casual style with utilitarian pockets.",
-                "imageUrlsWithoutScreenshot": [
-                  "https://citizensofhumanity.com/cdn/shop/files/2078-041_MARCELLE_CARGO_CORDUROY_COSTES_1274_d5113432-987c-4647-8695-efad45aba9f6.jpg?v=1720644296",
-                  "https://citizensofhumanity.com/cdn/shop/files/2078-041_MARCELLE_CARGO_CORDUROY_COSTES_1286_b195736c-99b0-44e4-a3a4-fa7b8f1213ba.jpg?v=1720644296"
-                ]
-              },
-              "explanation": "These corduroy cargo pants add texture and depth to your casual wardrobe while maintaining the practicality of side pockets."
-            }
-          ];
-        }
-        break;
-
-      case "exampleMainPrompt3": // Black Tweed Blazer with Golden Buttons
-        if (userLanguage === "brazilian_portuguese") {
-          hardcodedResponse = [
-            {
-              "score": 95,
-              "product": {
-                "link": "https://us.balmain.com/en/p/buttons-tweed-jacket-DF1SK249KG430PA.html",
-                "image": "https://media.balmain.com/image/upload/f_auto,q_auto,dpr_auto/w_3000/sfcc/balmain/hi-res/DF1SK249KG430PAF?_i=AG",
-                "title": "Blazer Tweed com Botões Dourados - Balmain",
-                "snippet": "Blazer de tweed preto com botões dourados, combinando tradição com um toque de luxo moderno.",
-                "imageUrlsWithoutScreenshot": [
-                  "https://media.balmain.com/image/upload/f_auto,q_auto,dpr_auto/w_3000/sfcc/balmain/hi-res/DF1SK249KG430PAF?_i=AG",
-                  "https://media.balmain.com/image/upload/f_auto,q_auto,dpr_auto/w_3000/sfcc/balmain/hi-res/DF1SK249KG430PAA?_i=AG"
-                ]
-              },
-              "explanation": "Este blazer tweed preto é perfeito para adicionar um toque sofisticado e elegante ao seu guarda-roupa formal."
+            "explanation": "This dress meets your preference for thin shoulder straps and also offers a customizable fit, making it both flattering and versatile for various occasions."
+          }
+        ];
+      }
+    } else if (promptKey === "exampleHomePrompt2") {
+      if(userLanguage === "brazilian_portuguese") {
+        hardcodedResponse = [
+          {
+            "score": 100,
+            "product": {
+              "link": "https://www.netshoes.com.br/shorts/adidas/rosa",
+              "image": "https://static.netshoes.com.br/bnn/l_netshoes/2024-10-07/9740_netshoes-share.png",
+              "title": "Shorts Adidas Rosa | Netshoes",
+              "snippet": "Receba rápido este produto saindo direto do Centro de Distribuição da Netshoes. Short Adidas Pacer Knit Feminino. R$ 149,99. ou 3x de R$ 50,00. LANÇAMENTO.",
+              "imageUrlsWithoutScreenshot": [
+                "https://static.netshoes.com.br/bnn/l_netshoes/2024-10-07/9740_netshoes-share.png"
+              ]
             },
-            {
-              "score": 90,
-              "product": {
-                "link": "https://us.sandro-paris.com/en/p/long-tweed-jacket/SFPVE01049_44.html",
-                "image": "https://us.sandro-paris.com/dw/image/v2/BCMW_PRD/on/demandware.static/-/Sites-master-catalog/default/dwa843429c/images/hi-res/Sandro_SFPVE01049-44_F_1.jpg?sw=2000&sh=2000",
-                "title": "Jaqueta Longa de Tweed - Sandro Paris",
-                "snippet": "Jaqueta longa de tweed preto com botões dourados, oferecendo um visual elegante e atemporal.",
-                "imageUrlsWithoutScreenshot": [
-                  "https://us.sandro-paris.com/dw/image/v2/BCMW_PRD/on/demandware.static/-/Sites-master-catalog/default/dwa843429c/images/hi-res/Sandro_SFPVE01049-44_F_1.jpg?sw=2000&sh=2000",
-                  "https://us.sandro-paris.com/dw/image/v2/BCMW_PRD/on/demandware.static/-/Sites-master-catalog/default/dw41d97900/images/hi-res/Sandro_SFPVE01049-44_F_3.jpg?sw=2000&sh=2000",
-                ]
-              },
-              "explanation": "Com seu corte longo e detalhes em botões dourados, esta jaqueta de tweed é ideal para um estilo clássico e refinado."
-            }
-          ];
-        } else {
-          // Hardcoded responses for other languages (e.g., English)
-          hardcodedResponse = [
-            {
-              "score": 95,
-              "product": {
-                "link": "https://us.balmain.com/en/p/buttons-tweed-jacket-DF1SK249KG430PA.html",
-                "image": "https://media.balmain.com/image/upload/f_auto,q_auto,dpr_auto/w_3000/sfcc/balmain/hi-res/DF1SK249KG430PAF?_i=AG",
-                "title": "Black Tweed Blazer with Golden Buttons - Balmain",
-                "snippet": "Black tweed blazer with golden buttons, blending tradition with a touch of modern luxury.",
-                "imageUrlsWithoutScreenshot": [
-                  "https://media.balmain.com/image/upload/f_auto,q_auto,dpr_auto/w_3000/sfcc/balmain/hi-res/DF1SK249KG430PAF?_i=AG",
-                  "https://media.balmain.com/image/upload/f_auto,q_auto,dpr_auto/w_3000/sfcc/balmain/hi-res/DF1SK249KG430PAA?_i=AG"
-                ]
-              },
-              "explanation": "This black tweed blazer is perfect for adding a sophisticated and elegant touch to your formal wardrobe."
+            "explanation": "Recomendo! O Short Adidas Pacer Knit Feminino na cor rosa é ideal para corrida, combinando estilo e conforto, perfeito para mulheres ativas."
+          },
+          {
+            "score": 80,
+            "product": {
+              "link": "https://www.yellowtreestore.com.br/shorts-fitness-feminino-yellow-tree-rosa/p/a106",
+              "image": "https://static.yellowtreestore.com.br/public/yellowtreestore/imagens/produtos/shorts-fitness-feminino-yellow-tree-rosa-65e0b2c58e1d9.jpg",
+              "title": "SHORTS FITNESS FEMININO YELLOW TREE ROSA - Yellow Tree",
+              "snippet": "Shorts Fitness A Yellow Tree é uma marca de moda contemporânea, oferecendo uma seleção única de roupas que combinam estilo e conforto.",
+              "imageUrlsWithoutScreenshot": [
+                "https://static.yellowtreestore.com.br/public/yellowtreestore/imagens/produtos/shorts-fitness-feminino-yellow-tree-rosa-65e0b2c58e1d9.jpg"
+              ]
             },
-            {
-              "score": 90,
-              "product": {
-                "link": "https://us.sandro-paris.com/en/p/long-tweed-jacket/SFPVE01049_44.html",
-                "image": "https://us.sandro-paris.com/dw/image/v2/BCMW_PRD/on/demandware.static/-/Sites-master-catalog/default/dwa843429c/images/hi-res/Sandro_SFPVE01049-44_F_1.jpg?sw=2000&sh=2000",
-                "title": "Long Tweed Jacket - Sandro Paris",
-                "snippet": "Long black tweed jacket with golden buttons, offering a timeless and elegant look.",
-                "imageUrlsWithoutScreenshot": [
-                  "https://us.sandro-paris.com/dw/image/v2/BCMW_PRD/on/demandware.static/-/Sites-master-catalog/default/dwa843429c/images/hi-res/Sandro_SFPVE01049-44_F_1.jpg?sw=2000&sh=2000",
-                  "https://us.sandro-paris.com/dw/image/v2/BCMW_PRD/on/demandware.static/-/Sites-master-catalog/default/dw41d97900/images/hi-res/Sandro_SFPVE01049-44_F_3.jpg?sw=2000&sh=2000",
-                ]
-              },
-              "explanation": "With its long cut and golden button details, this tweed jacket is ideal for a classic and refined style."
-            }
-          ];
-        }
-        break;
-
-      case "exampleMainPrompt4": // Metallic Mesh Sleeveless Top
-        if (userLanguage === "brazilian_portuguese") {
-          hardcodedResponse = [
-            {
-              "score": 95,
-              "product": {
-                "link": "https://www.versace.com/us/en/women/clothing/shirts-tops/metal-mesh-camisole-top/1017450-1A12739_1X050.html",
-                "image": "https://www.versace.com/dw/image/v2/BGWN_PRD/on/demandware.static/-/Sites-ver-master-catalog/default/dwc64eb860/original/90_1017450-1A12739_1X050_18_MetalMeshCamisoleTop-Shirts~~Tops-Versace-online-store_0_2.jpg?sw=850&q=85&strip=true",
-                "title": "Top Camisola de Malha Metálica - Versace",
-                "snippet": "Top camisola sem mangas de malha metálica, perfeito para um visual moderno e ousado.",
-                "imageUrlsWithoutScreenshot": [
-                  "https://www.versace.com/dw/image/v2/BGWN_PRD/on/demandware.static/-/Sites-ver-master-catalog/default/dwc64eb860/original/90_1017450-1A12739_1X050_18_MetalMeshCamisoleTop-Shirts~~Tops-Versace-online-store_0_2.jpg?sw=850&q=85&strip=true",
-                  "https://www.versace.com/dw/image/v2/BGWN_PRD/on/demandware.static/-/Sites-ver-master-catalog/default/dwaa0ecbf1/original/90_1017450-1A12739_1X050_10_MetalMeshCamisoleTop-Shirts~~Tops-Versace-online-store_1_2.jpg?sw=850&q=85&strip=true"
-                ]
-              },
-              "explanation": "Este top sem mangas de malha metálica adiciona um toque futurista e elegante ao seu guarda-roupa, ideal para eventos noturnos."
+            "explanation": "Esse short é uma boa escolha para corrida, mas a cor é rosa claro, o que se alinha parcialmente com sua preferência por \"rosa\". O conforto e o estilo também são bons para atividades físicas."
+          }
+        ];
+      } else {
+        // Hardcoded responses for other languages (e.g., English)
+        hardcodedResponse = [
+          {
+            "score": 95,
+            "product": {
+              "link": "https://www.nike.com/t/tempo-womens-running-shorts-0DGW8C",
+              "image": "https://static.nike.com/a/images/t_PDP_1280_v1/f_auto,q_auto:eco/a3a5022c-0c42-4041-85f1-dfda4bde5395/tempo-womens-running-shorts-0DGW8C.png",
+              "title": "Nike Tempo Women's Running Shorts",
+              "snippet": "The Nike Tempo Shorts deliver a classic fit with sweat-wicking technology and a trimmed-up design that moves with you.",
+              "imageUrlsWithoutScreenshot": [
+                "https://static.nike.com/a/images/t_PDP_1280_v1/f_auto,q_auto:eco/a3a5022c-0c42-4041-85f1-dfda4bde5395/tempo-womens-running-shorts-0DGW8C.png"
+              ]
             },
-            {
-              "score": 90,
-              "product": {
-                "link": "https://fashion.rabanne.com/en-us/products/top-in-a-silver-mini-mesh-19eito023mh0062-p040",
-                "image": "https://fashion.rabanne.com/cdn/shop/files/LOOK_31_4929.jpg?v=1713432520&width=800",
-                "title": "Top Mini de Malha Prateada - Rabanne",
-                "snippet": "Top mini sem mangas de malha prateada, oferecendo um visual sofisticado e brilhante.",
-                "imageUrlsWithoutScreenshot": [
-                  "https://fashion.rabanne.com/cdn/shop/files/LOOK_31_4929.jpg?v=1713432520&width=800"
-                ]
-              },
-              "explanation": "Com seu acabamento metálico e design sem mangas, este top é perfeito para adicionar brilho e elegância ao seu look."
-            }
-          ];
-        } else {
-          // Hardcoded responses for other languages (e.g., English)
-          hardcodedResponse = [
-            {
-              "score": 95,
-              "product": {
-                "link": "https://www.versace.com/us/en/women/clothing/shirts-tops/metal-mesh-camisole-top/1017450-1A12739_1X050.html",
-                "image": "https://www.versace.com/dw/image/v2/BGWN_PRD/on/demandware.static/-/Sites-ver-master-catalog/default/dwc64eb860/original/90_1017450-1A12739_1X050_18_MetalMeshCamisoleTop-Shirts~~Tops-Versace-online-store_0_2.jpg?sw=850&q=85&strip=true",
-                "title": "Metal Mesh Sleeveless Camisole Top - Versace",
-                "snippet": "Metallic mesh sleeveless camisole top, perfect for a modern and bold look.",
-                "imageUrlsWithoutScreenshot": [
-                  "https://www.versace.com/dw/image/v2/BGWN_PRD/on/demandware.static/-/Sites-ver-master-catalog/default/dwc64eb860/original/90_1017450-1A12739_1X050_18_MetalMeshCamisoleTop-Shirts~~Tops-Versace-online-store_0_2.jpg?sw=850&q=85&strip=true",
-                  "https://www.versace.com/dw/image/v2/BGWN_PRD/on/demandware.static/-/Sites-ver-master-catalog/default/dwaa0ecbf1/original/90_1017450-1A12739_1X050_10_MetalMeshCamisoleTop-Shirts~~Tops-Versace-online-store_1_2.jpg?sw=850&q=85&strip=true"
-                ]
-              },
-              "explanation": "This metallic mesh sleeveless top adds a futuristic and elegant touch to your wardrobe, ideal for evening events."
+            "explanation": "These pink running shorts from Nike are lightweight and perfect for your runs. They offer comfort and style, matching your preference."
+          },
+          {
+            "score": 90,
+            "product": {
+              "link": "https://www.adidas.com/us/pink-shorts",
+              "image": "https://assets.adidas.com/images/w_600,f_auto,q_auto/6f97c33a8f98447493f2ab7900e6a0ad_9366/Primeblue_Designed_2_Move_Shorts_Pink_GK0358_21_model.jpg",
+              "title": "adidas Primeblue Shorts - Pink",
+              "snippet": "Stay comfortable during your workouts with these pink adidas shorts, featuring breathable fabric and a stylish design.",
+              "imageUrlsWithoutScreenshot": [
+                "https://assets.adidas.com/images/w_600,f_auto,q_auto/6f97c33a8f98447493f2ab7900e6a0ad_9366/Primeblue_Designed_2_Move_Shorts_Pink_GK0358_21_model.jpg"
+              ]
             },
-            {
-              "score": 90,
-              "product": {
-                "link": "https://fashion.rabanne.com/en-us/products/top-in-a-silver-mini-mesh-19eito023mh0062-p040",
-                "image": "https://fashion.rabanne.com/cdn/shop/files/LOOK_31_4929.jpg?v=1713432520&width=800",
-                "title": "Silver Mini Mesh Top - Rabanne",
-                "snippet": "Silver mini sleeveless mesh top, offering a sophisticated and shiny look.",
-                "imageUrlsWithoutScreenshot": [
-                  "https://fashion.rabanne.com/cdn/shop/files/LOOK_31_4929.jpg?v=1713432520&width=800"
-                ]
-              },
-              "explanation": "With its metallic finish and sleeveless design, this top is perfect for adding shine and elegance to your outfit."
-            }
-          ];
-        }
-        break;
-
-      default:
-        hardcodedResponse = []; // Default empty response for undefined prompts
+            "explanation": "These adidas shorts are great for running, and their pink color matches your preference. They're both functional and fashionable."
+          }
+        ];
+      }
+    } else if (promptKey === "exampleHomePrompt3") {
+      if(userLanguage === "brazilian_portuguese") {
+        hardcodedResponse = [
+          {
+            "score": 95,
+            "product": {
+              "link": "https://www.lojasrenner.com.br/p/camisa-social-masculina-azul/-/A-5705019-594",
+              "image": "https://img.lojasrenner.com.br/item/571060971/large/1.jpg",
+              "title": "Camisa Social Masculina Azul - Renner",
+              "snippet": "Camisa social masculina azul com corte slim fit, ideal para eventos formais.",
+              "imageUrlsWithoutScreenshot": [
+                "https://img.lojasrenner.com.br/item/571060971/large/1.jpg"
+              ]
+            },
+            "explanation": "Esta camisa social azul é perfeita para um casamento, oferecendo elegância e conforto."
+          },
+          {
+            "score": 90,
+            "product": {
+              "link": "https://www.zara.com/br/pt/camisa-azul-masculina-p02548254.html",
+              "image": "https://static.zara.net/photos//2023/V/0/2/p/2548/254/405/2/w/750/2548254405_1_1_1.jpg?ts=1615475474215",
+              "title": "Camisa Azul Masculina - Zara",
+              "snippet": "Camisa azul masculina com tecido leve, perfeita para ocasiões especiais.",
+              "imageUrlsWithoutScreenshot": [
+                "https://static.zara.net/photos//2023/V/0/2/p/2548/254/405/2/w/750/2548254405_1_1_1.jpg?ts=1615475474215"
+              ]
+            },
+            "explanation": "Outra excelente opção de camisa azul para usar no casamento."
+          }
+        ];
+      } else {
+        // Hardcoded responses for other languages (e.g., English)
+        hardcodedResponse = [
+          {
+            "score": 95,
+            "product": {
+              "link": "https://www.macys.com/shop/product/mens-dress-shirt-blue?ID=12345",
+              "image": "https://slimages.macysassets.com/is/image/MCY/products/8/optimized/1374568_fpx.tif",
+              "title": "Men's Blue Dress Shirt - Macy's",
+              "snippet": "A classic blue dress shirt suitable for formal events like weddings.",
+              "imageUrlsWithoutScreenshot": [
+                "https://slimages.macysassets.com/is/image/MCY/products/8/optimized/1374568_fpx.tif"
+              ]
+            },
+            "explanation": "This blue dress shirt is perfect for your friend's wedding, offering a stylish and formal look."
+          },
+          {
+            "score": 90,
+            "product": {
+              "link": "https://www.hugoboss.com/us/mens-blue-shirt/hbna50260011_100.html",
+              "image": "https://images.hugoboss.com/is/image/boss/hbna50260011_100_100?fit=crop,1&wid=950&hei=950",
+              "title": "Men's Blue Shirt - HUGO BOSS",
+              "snippet": "Elegant blue shirt crafted from premium cotton, ideal for special occasions.",
+              "imageUrlsWithoutScreenshot": [
+                "https://images.hugoboss.com/is/image/boss/hbna50260011_100_100?fit=crop,1&wid=950&hei=950"
+              ]
+            },
+            "explanation": "An excellent choice for a wedding, this blue shirt combines comfort with sophistication."
+          }
+        ];
+      }
     }
 
     // Reset currentChatId to ensure a new chat is created
@@ -821,8 +653,11 @@ export function FashionSearchChat() {
 
   const lastBotMessage = conversation.map((msg) => msg.bot).filter(Boolean).pop();
 
-  console.log("conversations",conversations);
-    console.log("conversation",conversation);
+  // Prepare the prompts for the scrolling brick layout
+  const prompts = exampleHomePromptsKeys.map((promptKey) => ({
+    key: promptKey,
+    text: getLocalizedText(userLanguage, promptKey),
+  }));
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen w-screen bg-gray-50 text-gray-900 overflow-hidden">
@@ -874,7 +709,7 @@ export function FashionSearchChat() {
             {conversations.filter(conv => currentChatId === conv.id).map((conv) => (
               <button
                 key={conv.id}
-                onClick={() => router.push(`/?chat=${conv.id}`)}
+                onClick={() => router.push(`home/?chat=${conv.id}`)}
                 className={cn(
                   "w-full text-left mb-1 rounded-lg transition-colors duration-200",
                   sidebarOpen ? "p-2 hover:bg-gray-100 flex items-center gap-2" : "p-2 hover:bg-gray-100 flex justify-center"
@@ -974,8 +809,8 @@ export function FashionSearchChat() {
                   />
                   <span className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">Beta</span>
                 </div>
-                <h1 className="text-2xl md:text-4xl font-nunito font-medium mb-2 text-gray-800 font-raleway">{getLocalizedText(userLanguage, "callMainPrompt")}</h1>
-                <p className="text-lg md:text-xl text-gray-600 mb-8 font-nunito font-medium">{getLocalizedText(userLanguage, "introMainMessage")}</p>
+                <h1 className="text-2xl md:text-4xl font-nunito font-medium mb-2 text-gray-800 font-raleway">{getLocalizedText(userLanguage, "callHomePrompt")}</h1>
+                <p className="text-lg md:text-xl text-gray-600 mb-8 font-nunito font-medium">{getLocalizedText(userLanguage, "introHomeMessage")}</p>
                 <div className="space-y-4">
                   <form onSubmit={handleSubmit} className="flex flex-row gap-2 max-w-3xl mx-auto">
                     <textarea
@@ -994,19 +829,46 @@ export function FashionSearchChat() {
                       </div>
                     </button>
                   </form>
-                  <div className="flex gap-2 flex-wrap justify-center">
-                    {exampleMainPromptsKeys.map((promptKey) => (
-                      <Button
-                        key={promptKey}
-                        variant="outline"
-                        onClick={() => handleExampleClick(promptKey)}
-                        className="bg-white hover:bg-gray-100 text-gray-800 transition-colors duration-200 font-nunito font-medium"
-                      >
-                        {getLocalizedText(userLanguage, promptKey)}
-                      </Button>
-                    ))}
+                  {/* Infinite Scrolling Brick Layout */}
+                  <div className="relative max-w-[200px] md:max-w-[400px] mx-auto scroll-container">
+                    <div className="infinite-scroll">
+                      {/* First set of prompts */}
+                      <div className="flex space-x-4 p-4">
+                        {Array.from({ length: Math.ceil(prompts.length / 3) }).map((_, columnIndex) => (
+                          <div key={columnIndex} className="flex flex-col space-y-4">
+                            {prompts.slice(columnIndex * 3, columnIndex * 3 + 3).map((prompt, index) => (
+                              <div
+                                key={index}
+                                onClick={() => handleExampleClick(prompt.key)}
+                                className="flex items-center rounded-lg bg-white hover:bg-gray-100 text-gray-800 px-2 py-1 text-xs transition-colors cursor-pointer font-nunito font-medium whitespace-normal max-w-[10rem] md:max-w-xs"
+                              >
+                                {prompt.text}
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Duplicate set of prompts for seamless scrolling */}
+                      <div className="flex space-x-4 p-4">
+                        {Array.from({ length: Math.ceil(prompts.length / 3) }).map((_, columnIndex) => (
+                          <div key={`duplicate-${columnIndex}`} className="flex flex-col space-y-4">
+                            {prompts.slice(columnIndex * 3, columnIndex * 3 + 3).map((prompt, index) => (
+                              <div
+                                key={index}
+                                onClick={() => handleExampleClick(prompt.key)}
+                                className="flex items-center rounded-lg bg-white hover:bg-gray-100 text-gray-800 px-4 py-2 text-sm transition-colors cursor-pointer font-nunito font-medium whitespace-normal max-w-xs"
+                              >
+                                {prompt.text}
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <ScrollBar orientation="horizontal" className="bg-gray-300" />
                   </div>
-                  {/* Coming soon */}
+                  {/* Coming soon features remain unchanged */}
                   <div className="flex justify-center">
                     <div className="relative group w-40 h-10 mt-2">
                       <button className="bg-[#f6213f] text-white hover:bg-[#d2102c] font-medium rounded-full text-sm px-6 py-2">

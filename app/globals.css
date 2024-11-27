@@ -76,3 +76,33 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Keyframes for scrolling left */
+@keyframes scroll-left {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* Infinite scroll animation class */
+.infinite-scroll {
+  display: flex;
+  width: max-content;
+  animation: scroll-left 70s linear infinite;
+}
+
+.infinite-scroll:hover {
+  animation-play-state: paused; /* Pause animation on hover */
+}
+
+/* Allow manual scrolling on hover */
+.scroll-container {
+  overflow: hidden;
+}
+
+.scroll-container:hover {
+  overflow-x: auto;
+}
