@@ -44,7 +44,7 @@ interface Product {
   link: string;
   snippet: string;
   image: string;
-  imageUrlsWithoutScreenshot: string[];
+  images_urls: string[];
 }
 
 interface BotMessage {
@@ -235,10 +235,10 @@ export function FashionSearchChat() {
           <div className="aspect-square relative overflow-hidden rounded-lg">
             <ProductImage selectedImage={selectedImage} product={product} />
           </div>
-          {product.imageUrlsWithoutScreenshot?.length > 0 && (
+          {product.images_urls?.length > 0 && (
             <div className="overflow-x-auto w-full whitespace-nowrap rounded-lg h-24">
               <div className="flex gap-2 p-2">
-                {Array.from(new Set(product.imageUrlsWithoutScreenshot)).map((url, idx) => (
+                {Array.from(new Set(product.images_urls)).map((url, idx) => (
                   <div key={idx} className="relative w-20 h-20 flex-shrink-0 cursor-pointer hover:opacity-75 hover:border-4 hover:border-transparent" onClick={() => handleImageClick(url)}>
                     <ProductImage selectedImage={url} product={product} />
                   </div>
@@ -285,7 +285,7 @@ export function FashionSearchChat() {
     
         try {
           // Sign up the user
-          await signupUser(email, userData.country);
+          await signupUser(email);
     
           if (pendingConversation.length > 0) {
             // Add pending conversation
@@ -469,7 +469,7 @@ export function FashionSearchChat() {
                 "image": "https://www.zimmermann.com/media/catalog/product/1/_/1.1899dss246.refl.red-floral.jpg?quality=100&bg-color=255,255,255&fit=bounds&height=755&width=581&canvas=581:755",
                 "title": "Vestido Mini Floral Lightburst com Recortes - Zimmermann",
                 "snippet": "Este vestido mini de floral com recortes elegantes é perfeito para ocasiões especiais, oferecendo um toque de sofisticação e estilo.",
-                "imageUrlsWithoutScreenshot": [
+                "images_urls": [
                   "https://www.zimmermann.com/media/catalog/product/1/_/1.1899dss246.refl.red-floral.jpg?quality=100&bg-color=255,255,255&fit=bounds&height=755&width=581&canvas=581:755",
                   "https://www.zimmermann.com/media/catalog/product/3/_/3.1899dss246.refl.red-floral.jpg?quality=100&bg-color=255,255,255&fit=bounds&height=755&width=581&canvas=581:755"
                 ]
@@ -483,7 +483,7 @@ export function FashionSearchChat() {
                 "image": "https://www.zimmermann.com/media/catalog/product/1/_/1.1469dss243.cpb.cream-pink-bird.jpg?quality=100&bg-color=255,255,255&fit=bounds&height=755&width=581&canvas=581:755",
                 "title": "Vestido Mini Envolvente Waverly em Creme com Pássaros Cor-de-Rosa - Zimmermann",
                 "snippet": "O vestido Waverly Wrap apresenta uma estampa delicada de pássaros cor-de-rosa sobre um fundo creme, oferecendo um visual romântico e feminino.",
-                "imageUrlsWithoutScreenshot": [
+                "images_urls": [
                   "https://www.zimmermann.com/media/catalog/product/1/_/1.1469dss243.cpb.cream-pink-bird.jpg?quality=100&bg-color=255,255,255&fit=bounds&height=755&width=581&canvas=581:755",
                   "https://www.zimmermann.com/media/catalog/product/3/_/3.1469dss243.cpb.cream-pink-bird.jpg?quality=100&bg-color=255,255,255&fit=bounds&height=755&width=581&canvas=581:755"
                 ]
@@ -501,7 +501,7 @@ export function FashionSearchChat() {
                 "image": "https://www.zimmermann.com/media/catalog/product/1/_/1.1899dss246.refl.red-floral.jpg?quality=100&bg-color=255,255,255&fit=bounds&height=755&width=581&canvas=581:755",
                 "title": "Lightburst Cut-Out Mini Dress Red Floral - Zimmermann",
                 "snippet": "This red floral mini dress with elegant cut-outs is perfect for special occasions, offering a touch of sophistication and style.",
-                "imageUrlsWithoutScreenshot": [
+                "images_urls": [
                   "https://www.zimmermann.com/media/catalog/product/1/_/1.1899dss246.refl.red-floral.jpg?quality=100&bg-color=255,255,255&fit=bounds&height=755&width=581&canvas=581:755",
                   "https://www.zimmermann.com/media/catalog/product/3/_/3.1899dss246.refl.red-floral.jpg?quality=100&bg-color=255,255,255&fit=bounds&height=755&width=581&canvas=581:755"
                 ]
@@ -515,7 +515,7 @@ export function FashionSearchChat() {
                 "image": "https://www.zimmermann.com/media/catalog/product/1/_/1.1469dss243.cpb.cream-pink-bird.jpg?quality=100&bg-color=255,255,255&fit=bounds&height=755&width=581&canvas=581:755",
                 "title": "Waverly Wrap Mini Dress Cream Pink Bird - Zimmermann",
                 "snippet": "The Waverly Wrap Dress features a delicate pink bird print on a cream background, offering a romantic and feminine look.",
-                "imageUrlsWithoutScreenshot": [
+                "images_urls": [
                   "https://www.zimmermann.com/media/catalog/product/1/_/1.1469dss243.cpb.cream-pink-bird.jpg?quality=100&bg-color=255,255,255&fit=bounds&height=755&width=581&canvas=581:755",
                   "https://www.zimmermann.com/media/catalog/product/3/_/3.1469dss243.cpb.cream-pink-bird.jpg?quality=100&bg-color=255,255,255&fit=bounds&height=755&width=581&canvas=581:755"
                 ]
@@ -536,7 +536,7 @@ export function FashionSearchChat() {
                 "image": "https://twicpics.celine.com/product-prd/images/large/2Z552219I.02MK_1_SS24_W.jpg?twic=v1/cover=1:1/resize-max=900",
                 "title": "Calças Cargo em Algodão e Linho - Celine",
                 "snippet": "Calças cargo elegantes em algodão e linho, com bolsos laterais profundos para um estilo utilitário sofisticado.",
-                "imageUrlsWithoutScreenshot": [
+                "images_urls": [
                   "https://twicpics.celine.com/product-prd/images/large/2Z552219I.02MK_1_SS24_W.jpg?twic=v1/cover=1:1/resize-max=900",
                   "https://twicpics.celine.com/product-prd/images/large/2Z552219I.02MK_3_SS24_W.jpg?twic=v1/cover=820x820/max=2000"
                 ]
@@ -550,7 +550,7 @@ export function FashionSearchChat() {
                 "image": "https://citizensofhumanity.com/cdn/shop/files/2078-041_MARCELLE_CARGO_CORDUROY_COSTES_1274_d5113432-987c-4647-8695-efad45aba9f6.jpg?v=1720644296",
                 "title": "Calças Cargo de Corduroy Marcelle - Citizens of Humanity",
                 "snippet": "Calças cargo de corduroy de corte baixo, oferecendo conforto e estilo casual com bolsos utilitários.",
-                "imageUrlsWithoutScreenshot": [
+                "images_urls": [
                   "https://citizensofhumanity.com/cdn/shop/files/2078-041_MARCELLE_CARGO_CORDUROY_COSTES_1274_d5113432-987c-4647-8695-efad45aba9f6.jpg?v=1720644296",
                   "https://citizensofhumanity.com/cdn/shop/files/2078-041_MARCELLE_CARGO_CORDUROY_COSTES_1286_b195736c-99b0-44e4-a3a4-fa7b8f1213ba.jpg?v=1720644296"
                 ]
@@ -568,7 +568,7 @@ export function FashionSearchChat() {
                 "image": "https://twicpics.celine.com/product-prd/images/large/2Z552219I.02MK_1_SS24_W.jpg?twic=v1/cover=1:1/resize-max=900",
                 "title": "Cotton Linen Cargo Pants - Celine",
                 "snippet": "Elegant cargo pants made from cotton and linen, featuring deep side pockets for a sophisticated utilitarian style.",
-                "imageUrlsWithoutScreenshot": [
+                "images_urls": [
                   "https://twicpics.celine.com/product-prd/images/large/2Z552219I.02MK_1_SS24_W.jpg?twic=v1/cover=1:1/resize-max=900",
                   "https://twicpics.celine.com/product-prd/images/large/2Z552219I.02MK_3_SS24_W.jpg?twic=v1/cover=820x820/max=2000"
                 ]
@@ -582,7 +582,7 @@ export function FashionSearchChat() {
                 "image": "https://citizensofhumanity.com/cdn/shop/files/2078-041_MARCELLE_CARGO_CORDUROY_COSTES_1274_d5113432-987c-4647-8695-efad45aba9f6.jpg?v=1720644296",
                 "title": "Marcelle Low-Slung Easy Cargo Corduroy Pants - Citizens of Humanity",
                 "snippet": "Low-slung cargo corduroy pants offering comfort and casual style with utilitarian pockets.",
-                "imageUrlsWithoutScreenshot": [
+                "images_urls": [
                   "https://citizensofhumanity.com/cdn/shop/files/2078-041_MARCELLE_CARGO_CORDUROY_COSTES_1274_d5113432-987c-4647-8695-efad45aba9f6.jpg?v=1720644296",
                   "https://citizensofhumanity.com/cdn/shop/files/2078-041_MARCELLE_CARGO_CORDUROY_COSTES_1286_b195736c-99b0-44e4-a3a4-fa7b8f1213ba.jpg?v=1720644296"
                 ]
@@ -603,7 +603,7 @@ export function FashionSearchChat() {
                 "image": "https://media.balmain.com/image/upload/f_auto,q_auto,dpr_auto/w_3000/sfcc/balmain/hi-res/DF1SK249KG430PAF?_i=AG",
                 "title": "Blazer Tweed com Botões Dourados - Balmain",
                 "snippet": "Blazer de tweed preto com botões dourados, combinando tradição com um toque de luxo moderno.",
-                "imageUrlsWithoutScreenshot": [
+                "images_urls": [
                   "https://media.balmain.com/image/upload/f_auto,q_auto,dpr_auto/w_3000/sfcc/balmain/hi-res/DF1SK249KG430PAF?_i=AG",
                   "https://media.balmain.com/image/upload/f_auto,q_auto,dpr_auto/w_3000/sfcc/balmain/hi-res/DF1SK249KG430PAA?_i=AG"
                 ]
@@ -617,7 +617,7 @@ export function FashionSearchChat() {
                 "image": "https://us.sandro-paris.com/dw/image/v2/BCMW_PRD/on/demandware.static/-/Sites-master-catalog/default/dwa843429c/images/hi-res/Sandro_SFPVE01049-44_F_1.jpg?sw=2000&sh=2000",
                 "title": "Jaqueta Longa de Tweed - Sandro Paris",
                 "snippet": "Jaqueta longa de tweed preto com botões dourados, oferecendo um visual elegante e atemporal.",
-                "imageUrlsWithoutScreenshot": [
+                "images_urls": [
                   "https://us.sandro-paris.com/dw/image/v2/BCMW_PRD/on/demandware.static/-/Sites-master-catalog/default/dwa843429c/images/hi-res/Sandro_SFPVE01049-44_F_1.jpg?sw=2000&sh=2000",
                   "https://us.sandro-paris.com/dw/image/v2/BCMW_PRD/on/demandware.static/-/Sites-master-catalog/default/dw41d97900/images/hi-res/Sandro_SFPVE01049-44_F_3.jpg?sw=2000&sh=2000",
                 ]
@@ -635,7 +635,7 @@ export function FashionSearchChat() {
                 "image": "https://media.balmain.com/image/upload/f_auto,q_auto,dpr_auto/w_3000/sfcc/balmain/hi-res/DF1SK249KG430PAF?_i=AG",
                 "title": "Black Tweed Blazer with Golden Buttons - Balmain",
                 "snippet": "Black tweed blazer with golden buttons, blending tradition with a touch of modern luxury.",
-                "imageUrlsWithoutScreenshot": [
+                "images_urls": [
                   "https://media.balmain.com/image/upload/f_auto,q_auto,dpr_auto/w_3000/sfcc/balmain/hi-res/DF1SK249KG430PAF?_i=AG",
                   "https://media.balmain.com/image/upload/f_auto,q_auto,dpr_auto/w_3000/sfcc/balmain/hi-res/DF1SK249KG430PAA?_i=AG"
                 ]
@@ -649,7 +649,7 @@ export function FashionSearchChat() {
                 "image": "https://us.sandro-paris.com/dw/image/v2/BCMW_PRD/on/demandware.static/-/Sites-master-catalog/default/dwa843429c/images/hi-res/Sandro_SFPVE01049-44_F_1.jpg?sw=2000&sh=2000",
                 "title": "Long Tweed Jacket - Sandro Paris",
                 "snippet": "Long black tweed jacket with golden buttons, offering a timeless and elegant look.",
-                "imageUrlsWithoutScreenshot": [
+                "images_urls": [
                   "https://us.sandro-paris.com/dw/image/v2/BCMW_PRD/on/demandware.static/-/Sites-master-catalog/default/dwa843429c/images/hi-res/Sandro_SFPVE01049-44_F_1.jpg?sw=2000&sh=2000",
                   "https://us.sandro-paris.com/dw/image/v2/BCMW_PRD/on/demandware.static/-/Sites-master-catalog/default/dw41d97900/images/hi-res/Sandro_SFPVE01049-44_F_3.jpg?sw=2000&sh=2000",
                 ]
@@ -670,7 +670,7 @@ export function FashionSearchChat() {
                 "image": "https://www.versace.com/dw/image/v2/BGWN_PRD/on/demandware.static/-/Sites-ver-master-catalog/default/dwc64eb860/original/90_1017450-1A12739_1X050_18_MetalMeshCamisoleTop-Shirts~~Tops-Versace-online-store_0_2.jpg?sw=850&q=85&strip=true",
                 "title": "Top Camisola de Malha Metálica - Versace",
                 "snippet": "Top camisola sem mangas de malha metálica, perfeito para um visual moderno e ousado.",
-                "imageUrlsWithoutScreenshot": [
+                "images_urls": [
                   "https://www.versace.com/dw/image/v2/BGWN_PRD/on/demandware.static/-/Sites-ver-master-catalog/default/dwc64eb860/original/90_1017450-1A12739_1X050_18_MetalMeshCamisoleTop-Shirts~~Tops-Versace-online-store_0_2.jpg?sw=850&q=85&strip=true",
                   "https://www.versace.com/dw/image/v2/BGWN_PRD/on/demandware.static/-/Sites-ver-master-catalog/default/dwaa0ecbf1/original/90_1017450-1A12739_1X050_10_MetalMeshCamisoleTop-Shirts~~Tops-Versace-online-store_1_2.jpg?sw=850&q=85&strip=true"
                 ]
@@ -684,7 +684,7 @@ export function FashionSearchChat() {
                 "image": "https://fashion.rabanne.com/cdn/shop/files/LOOK_31_4929.jpg?v=1713432520&width=800",
                 "title": "Top Mini de Malha Prateada - Rabanne",
                 "snippet": "Top mini sem mangas de malha prateada, oferecendo um visual sofisticado e brilhante.",
-                "imageUrlsWithoutScreenshot": [
+                "images_urls": [
                   "https://fashion.rabanne.com/cdn/shop/files/LOOK_31_4929.jpg?v=1713432520&width=800"
                 ]
               },
@@ -701,7 +701,7 @@ export function FashionSearchChat() {
                 "image": "https://www.versace.com/dw/image/v2/BGWN_PRD/on/demandware.static/-/Sites-ver-master-catalog/default/dwc64eb860/original/90_1017450-1A12739_1X050_18_MetalMeshCamisoleTop-Shirts~~Tops-Versace-online-store_0_2.jpg?sw=850&q=85&strip=true",
                 "title": "Metal Mesh Sleeveless Camisole Top - Versace",
                 "snippet": "Metallic mesh sleeveless camisole top, perfect for a modern and bold look.",
-                "imageUrlsWithoutScreenshot": [
+                "images_urls": [
                   "https://www.versace.com/dw/image/v2/BGWN_PRD/on/demandware.static/-/Sites-ver-master-catalog/default/dwc64eb860/original/90_1017450-1A12739_1X050_18_MetalMeshCamisoleTop-Shirts~~Tops-Versace-online-store_0_2.jpg?sw=850&q=85&strip=true",
                   "https://www.versace.com/dw/image/v2/BGWN_PRD/on/demandware.static/-/Sites-ver-master-catalog/default/dwaa0ecbf1/original/90_1017450-1A12739_1X050_10_MetalMeshCamisoleTop-Shirts~~Tops-Versace-online-store_1_2.jpg?sw=850&q=85&strip=true"
                 ]
@@ -715,7 +715,7 @@ export function FashionSearchChat() {
                 "image": "https://fashion.rabanne.com/cdn/shop/files/LOOK_31_4929.jpg?v=1713432520&width=800",
                 "title": "Silver Mini Mesh Top - Rabanne",
                 "snippet": "Silver mini sleeveless mesh top, offering a sophisticated and shiny look.",
-                "imageUrlsWithoutScreenshot": [
+                "images_urls": [
                   "https://fashion.rabanne.com/cdn/shop/files/LOOK_31_4929.jpg?v=1713432520&width=800"
                 ]
               },

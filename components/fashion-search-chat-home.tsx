@@ -44,7 +44,7 @@ interface Product {
   link: string;
   snippet: string;
   image: string;
-  imageUrlsWithoutScreenshot: string[];
+  images_urls: string[];
 }
 
 interface BotMessage {
@@ -254,10 +254,10 @@ export function FashionSearchChat() {
           <div className="aspect-square relative overflow-hidden rounded-lg">
             <ProductImage selectedImage={selectedImage} product={product} />
           </div>
-          {product.imageUrlsWithoutScreenshot?.length > 0 && (
+          {product.images_urls?.length > 0 && (
             <div className="overflow-x-auto w-full whitespace-nowrap rounded-lg h-24">
               <div className="flex gap-2 p-2">
-                {Array.from(new Set(product.imageUrlsWithoutScreenshot)).map((url, idx) => (
+                {Array.from(new Set(product.images_urls)).map((url, idx) => (
                   <div key={idx} className="relative w-20 h-20 flex-shrink-0 cursor-pointer hover:opacity-75 hover:border-4 hover:border-transparent" onClick={() => handleImageClick(url)}>
                     <ProductImage selectedImage={url} product={product} />
                   </div>
@@ -304,7 +304,7 @@ export function FashionSearchChat() {
 
         try {
           // Sign up the user
-          await signupUser(email, userData.country);
+          await signupUser(email);
 
           if (pendingConversation.length > 0) {
             // Add pending conversation
@@ -392,7 +392,6 @@ export function FashionSearchChat() {
 
     // Check if enough preferences
     const result = await checkChat(currentConversation, userLanguage);
-    console.log("result.response", result.response);
 
     if (result.response === 'OK') {
       if (currentChatId) {
@@ -470,7 +469,7 @@ export function FashionSearchChat() {
               "image": "https://img.lojasrenner.com.br/item/880249217/original/3.jpg",
               "title": "Vestido New Midi em Linho com Estampa Tropical e Alças Finas Off ...",
               "snippet": "Comprar junto. Avaliações. A Trustvox certifica que a nota média da loja Lojas Renner é. 4.7. Nota da Loja Lojas Renner. Calculamos a média com base em 433190 ...",
-              "imageUrlsWithoutScreenshot": [
+              "images_urls": [
                 "https://img.lojasrenner.com.br/item/880249217/original/3.jpg"
               ]
             },
@@ -483,7 +482,7 @@ export function FashionSearchChat() {
               "image": "https://img.lojasrenner.com.br/item/927501871/medium/3.jpg",
               "title": "Vestido Curto em Cotton com Alças Finas Lilás - Renner",
               "snippet": "Vestido curto, confeccionado em cotton, com alças finas e decote reto. Vestido feminino Modelo curto Básico Decote reto Alças finas Sem estampa Processo ...",
-              "imageUrlsWithoutScreenshot": [
+              "images_urls": [
                 "https://img.lojasrenner.com.br/item/927501871/medium/3.jpg"
               ]
             },
@@ -499,7 +498,7 @@ export function FashionSearchChat() {
               "image": "https://m.media-amazon.com/images/I/61LjbjuCT3L._AC_UY1000_.jpg",
               "title": "Lulus Women's Love So Sweet Off-The-Shoulder Bodycon Cocktail ...",
               "snippet": "Lulus Women's Love So Sweet Off-The-Shoulder Bodycon Cocktail Dress with Skinny Straps and V-Neckline, Hunter Green, Hunter Green, XS : Amazon.co.uk: ...",
-              "imageUrlsWithoutScreenshot": [
+              "images_urls": [
                 "https://m.media-amazon.com/images/I/61LjbjuCT3L._AC_UY1000_.jpg"
               ]
             },
@@ -512,7 +511,7 @@ export function FashionSearchChat() {
               "image": "https://www.patagonia.com/contents/patagonia.com/en_US/banners/actionworks.jpg",
               "title": "Patagonia Women's Wear With All Wrap Dress",
               "snippet": "This flattering skinny strap dress is made of 55% hemp and 45% organic cotton jersey and wraps around the waist for a flattering and customizable fit.",
-              "imageUrlsWithoutScreenshot": [
+              "images_urls": [
                 "https://www.patagonia.com/contents/patagonia.com/en_US/banners/actionworks.jpg"
               ]
             },
@@ -530,7 +529,7 @@ export function FashionSearchChat() {
               "image": "https://static.netshoes.com.br/bnn/l_netshoes/2024-10-07/9740_netshoes-share.png",
               "title": "Shorts Adidas Rosa | Netshoes",
               "snippet": "Receba rápido este produto saindo direto do Centro de Distribuição da Netshoes. Short Adidas Pacer Knit Feminino. R$ 149,99. ou 3x de R$ 50,00. LANÇAMENTO.",
-              "imageUrlsWithoutScreenshot": [
+              "images_urls": [
                 "https://static.netshoes.com.br/bnn/l_netshoes/2024-10-07/9740_netshoes-share.png"
               ]
             },
@@ -543,7 +542,7 @@ export function FashionSearchChat() {
               "image": "https://static.yellowtreestore.com.br/public/yellowtreestore/imagens/produtos/shorts-fitness-feminino-yellow-tree-rosa-65e0b2c58e1d9.jpg",
               "title": "SHORTS FITNESS FEMININO YELLOW TREE ROSA - Yellow Tree",
               "snippet": "Shorts Fitness A Yellow Tree é uma marca de moda contemporânea, oferecendo uma seleção única de roupas que combinam estilo e conforto.",
-              "imageUrlsWithoutScreenshot": [
+              "images_urls": [
                 "https://static.yellowtreestore.com.br/public/yellowtreestore/imagens/produtos/shorts-fitness-feminino-yellow-tree-rosa-65e0b2c58e1d9.jpg"
               ]
             },
@@ -560,7 +559,7 @@ export function FashionSearchChat() {
               "image": "https://static.nike.com/a/images/t_PDP_1280_v1/f_auto,q_auto:eco/a3a5022c-0c42-4041-85f1-dfda4bde5395/tempo-womens-running-shorts-0DGW8C.png",
               "title": "Nike Tempo Women's Running Shorts",
               "snippet": "The Nike Tempo Shorts deliver a classic fit with sweat-wicking technology and a trimmed-up design that moves with you.",
-              "imageUrlsWithoutScreenshot": [
+              "images_urls": [
                 "https://static.nike.com/a/images/t_PDP_1280_v1/f_auto,q_auto:eco/a3a5022c-0c42-4041-85f1-dfda4bde5395/tempo-womens-running-shorts-0DGW8C.png"
               ]
             },
@@ -573,7 +572,7 @@ export function FashionSearchChat() {
               "image": "https://assets.adidas.com/images/w_600,f_auto,q_auto/6f97c33a8f98447493f2ab7900e6a0ad_9366/Primeblue_Designed_2_Move_Shorts_Pink_GK0358_21_model.jpg",
               "title": "adidas Primeblue Shorts - Pink",
               "snippet": "Stay comfortable during your workouts with these pink adidas shorts, featuring breathable fabric and a stylish design.",
-              "imageUrlsWithoutScreenshot": [
+              "images_urls": [
                 "https://assets.adidas.com/images/w_600,f_auto,q_auto/6f97c33a8f98447493f2ab7900e6a0ad_9366/Primeblue_Designed_2_Move_Shorts_Pink_GK0358_21_model.jpg"
               ]
             },
@@ -591,7 +590,7 @@ export function FashionSearchChat() {
               "image": "https://img.lojasrenner.com.br/item/571060971/large/1.jpg",
               "title": "Camisa Social Masculina Azul - Renner",
               "snippet": "Camisa social masculina azul com corte slim fit, ideal para eventos formais.",
-              "imageUrlsWithoutScreenshot": [
+              "images_urls": [
                 "https://img.lojasrenner.com.br/item/571060971/large/1.jpg"
               ]
             },
@@ -604,7 +603,7 @@ export function FashionSearchChat() {
               "image": "https://static.zara.net/photos//2023/V/0/2/p/2548/254/405/2/w/750/2548254405_1_1_1.jpg?ts=1615475474215",
               "title": "Camisa Azul Masculina - Zara",
               "snippet": "Camisa azul masculina com tecido leve, perfeita para ocasiões especiais.",
-              "imageUrlsWithoutScreenshot": [
+              "images_urls": [
                 "https://static.zara.net/photos//2023/V/0/2/p/2548/254/405/2/w/750/2548254405_1_1_1.jpg?ts=1615475474215"
               ]
             },
@@ -621,7 +620,7 @@ export function FashionSearchChat() {
               "image": "https://slimages.macysassets.com/is/image/MCY/products/8/optimized/1374568_fpx.tif",
               "title": "Men's Blue Dress Shirt - Macy's",
               "snippet": "A classic blue dress shirt suitable for formal events like weddings.",
-              "imageUrlsWithoutScreenshot": [
+              "images_urls": [
                 "https://slimages.macysassets.com/is/image/MCY/products/8/optimized/1374568_fpx.tif"
               ]
             },
@@ -634,7 +633,7 @@ export function FashionSearchChat() {
               "image": "https://images.hugoboss.com/is/image/boss/hbna50260011_100_100?fit=crop,1&wid=950&hei=950",
               "title": "Men's Blue Shirt - HUGO BOSS",
               "snippet": "Elegant blue shirt crafted from premium cotton, ideal for special occasions.",
-              "imageUrlsWithoutScreenshot": [
+              "images_urls": [
                 "https://images.hugoboss.com/is/image/boss/hbna50260011_100_100?fit=crop,1&wid=950&hei=950"
               ]
             },
