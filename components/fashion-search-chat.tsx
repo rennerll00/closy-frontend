@@ -3,7 +3,6 @@
 // Import statements
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader } from "@/components/ui/card";
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -14,44 +13,50 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import hardcodedResponses from '@/lib/hardcodedResponses';
 import { cn } from "@/lib/utils";
 import {
   ArrowUp,
   ChevronLeft,
   ChevronRight,
-  ExternalLink,
   Menu,
   MessageSquare,
   PlusCircle,
   Settings,
+  ShoppingCart,
   Sparkles,
+  Star,
+  Undo,
   User
 } from "lucide-react";
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  API_BASE_URL,
   checkChat,
   createChat,
   getChats,
   removeUser,
+  saveOpenFeedback,
+  saveStarsFeedback,
   signupUser,
+  undoLastChatMessages,
+  updateChatMessages,
+  updateChatMessagesFollowUp
 } from '../lib/api';
 import { getLocalizedText, getUserLanguage, LocalizationStrings } from '../lib/localization';
 
 import React from 'react';
 import logo from '/public/images/logo.png';
 
-// Updated TypeScript Interfaces to match the new backend response
 interface ConversationMessage {
   user?: string;
   bot?: BotResponse;
 }
 
 interface BotResponse {
-  inProgress: boolean;
-  progressMessage?: string;
+  "in-progress": boolean;
+  "progress-message"?: string;
   message: BotMessage[] | string;
 }
 
@@ -60,6 +65,7 @@ interface BotMessage {
   searchType: string;
   preferences: string;
   message: string;
+  explanation: string;
   items: Item[];
 }
 
@@ -79,6 +85,9 @@ interface Product {
   id: string;
   title: string;
   price: number;
+  ecommerce_title: string;
+  ecommerce_logo: string;
+  ecommerce_link: string;
   link: string;
   image: string;
   images_urls: string[];
@@ -99,27 +108,25 @@ interface Variant {
 }
 
 interface UserData {
+  id: string;
   email: string;
   country: string;
 }
 
-// Mapping of time zones to countries
 const timeZoneCityToCountry: { [key: string]: string } = {
   "New York": "us",
   "Los Angeles": "us",
   "Sao Paulo": "br",
 };
 
-// Keys for example prompts based on localization
 const exampleMainPromptsKeys: (keyof LocalizationStrings)[] = [
   "exampleMainPrompt1",
   "exampleMainPrompt2",
-  "exampleMainPrompt3",
-  "exampleMainPrompt4"
+  "exampleMainPrompt3"
 ];
 
-export function Carousel({ children }: { children: React.ReactNode }) {
-  const [currentIndex, setCurrentIndex] = useState(0)
+function Carousel({ children }: { children: React.ReactNode }) {
+  const [currentIndex, setCurrentIndex] = React.useState(0)
   const total = React.Children.count(children)
 
   const prev = () => {
@@ -132,7 +139,7 @@ export function Carousel({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="relative">
-      <div className="overflow-hidden rounded-lg">
+      <div className="overflow-hidden">
         <div
           className="flex transition-transform duration-300 ease-in-out"
           style={{ transform: `translateX(-${currentIndex * 100}%)` }}
@@ -164,103 +171,144 @@ export function Carousel({ children }: { children: React.ReactNode }) {
   )
 }
 
-// Updated ProductCard component to handle the new product structure
-const ProductCard = ({ product, explanation, visitProductLabel }: { product: Product; explanation: string, visitProductLabel: string }) => {
-  const [selectedImage, setSelectedImage] = useState(product?.image);
-  if (!product) return null;
+interface Props {
+  items: Item[];
+}
 
-  const handleImageClick = (url: string) => {
-    setSelectedImage(url);
-  };
+function ImprovedCarouselGrid({ items }: Props) {
+  const allResults = items.flatMap(item =>
+    item.itemResults.map(result => ({
+      ...result,
+      itemName: item.itemName.charAt(0).toUpperCase() + item.itemName.slice(1)
+    }))
+  );
 
+  return (
+    <div className="py-4 px-2">
+      <Carousel>
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2">
+          {allResults.map((result, idx) => (
+            <ProductCard
+              key={idx}
+              itemName={result.itemName}
+              product={result.product}
+              explanation={result.explanation}
+            />
+          ))}
+        </div>
+      </Carousel>
+    </div>
+  );
+}
+
+function ProductCard({ itemName, product, explanation }: { itemName: string; product: Product, explanation: string }) {
   const handleError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     e.currentTarget.src = 'https://coffective.com/wp-content/uploads/2018/06/default-featured-image.png.jpg';
   };
 
   return (
-    <Card className="w-full max-w-sm md:max-w-md mx-auto">
-      <CardHeader className="space-y-1">
-        <div className="flex items-center justify-between">
-          {product.title.charAt(0).toUpperCase() + product.title.slice(1).toLowerCase()}
-        </div>
-        <CardDescription className="font-nunito font-small">
-          {explanation}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="aspect-square relative overflow-hidden rounded-lg">
-          <img
-            src={selectedImage}
-            alt={product.title || "Product Image"}
-            className="object-cover w-full h-full"
-            onError={handleError}
-            style={{ width: '100%', height: '100%' }}
-          />
-        </div>
-        {product.images_urls && (
-          <div className="overflow-x-auto w-full whitespace-nowrap rounded-lg h-24">
-            <div className="flex gap-2 p-2">
-              {Array.from(new Set(product.images_urls)).map((url, idx) => (
-                <div key={idx} className="relative w-20 h-20 flex-shrink-0 cursor-pointer hover:opacity-75 hover:border-4 hover:border-transparent" onClick={() => handleImageClick(url)}>
-                  <img
-                    src={url}
-                    alt={`${product.title} ${idx + 1}`}
-                    className="object-cover w-full h-full rounded-md"
-                    onError={handleError}
-                  />
-                </div>
-              ))}
+    <a 
+      href={product.link} 
+      target="_blank" 
+      rel="noopener noreferrer" 
+      className="relative w-full h-full aspect-[9/16] rounded-lg overflow-hidden group cursor-pointer"
+    >
+      <div className="relative w-full h-full">
+        <img
+          src={product.image}
+          alt={itemName || "Product"}
+          className="object-cover w-full h-full transition-transform duration-300 scale-105"
+          onError={handleError}
+        />
+        <div
+          className="
+            absolute inset-0 
+            opacity-100 
+            transition-all duration-100 
+            bg-gradient-to-t from-black/40 via-transparent to-transparent 
+            group-hover:from-black/70 
+          "
+        />
+        <div className="absolute bottom-0 left-0 right-0 px-4 py-2 group-hover:py-4 text-white flex flex-col items-start">
+          {product.ecommerce_logo && product.ecommerce_logo.includes("https") ? (
+            <div className="h-3 sm:h-5 overflow-hidden mb-1">
+              <Image
+                src={product.ecommerce_logo}
+                alt="Logo"
+                width={80}
+                height={10}
+                style={{
+                  filter: "brightness(0) invert(1)",
+                }}
+                className="object-contain w-full h-full"
+                unoptimized
+              />
             </div>
-          </div>
-        )}
-      </CardContent>
-      <CardFooter>
-        <div className="flex gap-2 w-full">
-          <Button className="flex-1 bg-[#f6213f] hover:bg-[#f6213f]" asChild>
-            <a href={product.link} target="_blank" rel="noopener noreferrer" className="font-nunito font-medium">
-              {visitProductLabel}
-              <ExternalLink className="ml-2 h-4 w-4" />
-            </a>
-          </Button>
-        </div>
-      </CardFooter>
-    </Card>
-  );
-};
+          ) : (
+            <h1 className="text-xl font-bold uppercase">
+              {product.ecommerce_title}
+            </h1>
+          )}
 
-// Main Functional Component
+          <h3 className="text-sm md:text-md font-semibold leading-tight">
+            {itemName} | R${(product.price / 100).toFixed(2)}
+          </h3>
+          <p className="max-h-0 overflow-hidden group-hover:max-h-96 transition-all duration-300 mt-2">
+            {explanation}
+          </p>
+        </div>
+      </div>
+    </a>
+  )
+}
+
 export function FashionSearchChat() {
   const router = useRouter();
-
-  // Determine the user's country based on their time zone
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const city = timeZone.split('/').pop()?.replace('_', ' ');
   const detectedDefaultCountry = timeZoneCityToCountry[city || ''] || 'us';
 
-  // State Management
-  const [conversations, setConversations] = useState<{ id: string; conversation: ConversationMessage[] }[]>([]);
+  const [conversations, setConversations] = useState<{ id: string; user_id: string; conversation: ConversationMessage[], rating?: number; feedback?: string; created_at: string; }[]>([]);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [conversation, setConversation] = useState<ConversationMessage[]>([]);
   const [input, setInput] = useState('');
-  const [searchType, setSearchType] = useState('SPECIFIC');
+  const [searchType, setSearchType] = useState('');
   const [userData, setUserData] = useState<UserData>({
+    id: '',
     email: '',
-    country: 'br', // default value
+    country: 'br',
   });
-
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // References for polling and timeouts
   const botResponseCheckInterval = useRef<NodeJS.Timeout | null>(null);
-  const botResponseTimeout = useRef<NodeJS.Timeout | null>(null);
   const [isAwaitingEmail, setIsAwaitingEmail] = useState(false);
   const [pendingConversation, setPendingConversation] = useState<ConversationMessage[]>([]);
-
   const [chatIdFromUrl, setChatIdFromUrl] = useState<string | null>(null);
+  const [showFeedbackForm, setShowFeedbackForm] = useState(false);
+  const [starRating, setStarRating] = useState<number | null>(null);
+  const [showFeedbackPopup, setShowFeedbackPopup] = useState(false);
+  const [writtenFeedback, setWrittenFeedback] = useState('');
+  const [showProfilePrompt, setShowProfilePrompt] = useState(false);
+  const userLanguage = getUserLanguage(userData.country);
 
-  // Effect to capture chat ID from URL
+  // **Added State Variables**
+  const [isWaitingFeedback, setIsWaitingFeedback] = useState(false);
+
+  // Define feedbackSuggestionsKeys based on the condition
+  const feedbackSuggestionsKeys: string[] = searchType === "ABSTRACT"
+    ? [
+      getLocalizedText(userLanguage, "regenerateIt"),
+      getLocalizedText(userLanguage, "modifyLookRemoveItem"),
+      getLocalizedText(userLanguage, "modifyLookAddItem"),
+      getLocalizedText(userLanguage, "modifyLookAlterItem"),
+    ]
+    : [
+      getLocalizedText(userLanguage, "regenerateIt"),
+      getLocalizedText(userLanguage, "modifyAlterItem"),
+    ];
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -269,26 +317,44 @@ export function FashionSearchChat() {
     }
   }, []);
 
-  // Handle Enter key for sending messages
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage(input);
-    }
-  };
-
-  // Get user language based on country
-  const userLanguage = getUserLanguage(userData.country);
-
-  // Load conversation by chat ID
   const loadConversationById = useCallback((chatId: string) => {
     const chat = conversations.find(c => c.id === chatId);
     if (chat) {
       setConversation(chat.conversation);
+      scrollToBottom();
+
+      // 1. Find the last bot message that had a "message" array (the looks)
+      let lastBotIndex = -1;
+      for (let i = conversation.length - 1; i >= 0; i--) {
+        const entry = conversation[i];
+        if (entry.bot && Array.isArray(entry.bot.message) && entry.bot.message.length > 0) {
+          lastBotIndex = i;
+          break;
+        }
+      }
+
+      // If no such bot message found, return a neutral response
+      if (lastBotIndex !== -1) {
+        const lastBotArrayMessage = conversation[lastBotIndex]?.bot?.message ?? [];
+        const message = lastBotArrayMessage[0];
+
+        if (typeof message !== 'string') {
+          const searchType = message.searchType;
+          setSearchType(searchType);
+        }
+      }
+      
+      if (chat.rating) {
+        setStarRating(chat.rating);
+        setShowFeedbackForm(false);
+      }
+      if (chat.feedback) {
+        setWrittenFeedback(chat.feedback);
+        setShowFeedbackForm(false);
+      }
     }
   }, [conversations]);
 
-  // Fetch all chats from the backend
   const fetchChats = useCallback(async () => {
     try {
       const chats = await getChats();
@@ -304,17 +370,17 @@ export function FashionSearchChat() {
     }
   }, [chatIdFromUrl]);
 
-  // Initialize user data from localStorage
   useEffect(() => {
-    const storedCountry = localStorage.getItem('country') || detectedDefaultCountry;
+    const storedId = localStorage.getItem('id');
     const storedEmail = localStorage.getItem('email');
+    const storedCountry = localStorage.getItem('country') || detectedDefaultCountry;
     setUserData({
+      id: storedId || '',
       email: storedEmail || '',
       country: storedCountry,
     });
-  }, []);
+  }, [detectedDefaultCountry]);
 
-  // Fetch chats on component mount
   useEffect(() => {
     fetchChats();
     const storedEmail = localStorage.getItem('email');
@@ -323,7 +389,6 @@ export function FashionSearchChat() {
     }
   }, [fetchChats]);
 
-  // Load conversation if chat ID is present in URL
   useEffect(() => {
     if (chatIdFromUrl) {
       setCurrentChatId(chatIdFromUrl);
@@ -331,40 +396,155 @@ export function FashionSearchChat() {
     }
   }, [chatIdFromUrl, conversations, loadConversationById]);
 
-  // Scroll to the bottom of the chat whenever the conversation updates
-  useEffect(() => {
-    scrollToBottom();
-  }, [conversation]);
-
-  // Cleanup polling intervals and timeouts on component unmount
   useEffect(() => {
     return () => {
       if (botResponseCheckInterval.current) {
         clearInterval(botResponseCheckInterval.current);
       }
-      if (botResponseTimeout.current) {
-        clearTimeout(botResponseTimeout.current);
-      }
     };
   }, []);
 
-  // Function to start a new chat
+  useEffect(() => {
+    if (conversation.length > 0) {
+      const lastMessage = conversation[conversation.length - 1];
+      if (lastMessage.bot && lastMessage.bot["in-progress"] === false) {
+        if (typeof lastMessage.bot.message === 'string' &&
+          (lastMessage.bot.message === getLocalizedText(userLanguage, "askEmail") ||
+            lastMessage.bot.message === getLocalizedText(userLanguage, "invalidEmail"))) {
+          setShowFeedbackForm(false);
+          setShowProfilePrompt(false);
+          return;
+        }
+
+        if (Array.isArray(lastMessage.bot.message) && lastMessage.bot.message.length > 0) {
+          const hasItems = lastMessage.bot.message.some((messageContent) => {
+            return Array.isArray(messageContent.items) && messageContent.items.length > 0;
+          });
+          if (hasItems) {
+            const profile = localStorage.getItem('profile');
+            if (!profile || profile === "{}") {
+              setShowFeedbackForm(false);
+              setShowProfilePrompt(true);
+            } else {
+              const chat = conversations.find(c => c.id === currentChatId);
+              if (chat) {
+                if (chat.rating) {
+                  setStarRating(chat.rating);
+                } else {
+                  setShowFeedbackForm(false);
+                }
+                if (chat.feedback) {
+                  setWrittenFeedback(chat.feedback);
+                }
+              } else {
+                setShowFeedbackForm(false);
+              }
+            }
+          } else {
+            setShowFeedbackForm(false);
+            const profile = localStorage.getItem('profile');
+            if (!profile || profile === "{}") {
+              setShowProfilePrompt(true);
+            }
+          }
+        } else {
+          setShowFeedbackForm(false);
+          const profile = localStorage.getItem('profile');
+          if (!profile || profile === "{}") {
+            setShowProfilePrompt(true);
+          }
+        }
+      } else {
+        setShowFeedbackForm(false);
+      }
+    } else {
+      setShowFeedbackForm(false);
+    }
+
+    // **Handle isWaitingFeedback and isWaitingBuy**
+    const lastBotMessage = conversation[conversation.length - 1]?.bot;
+    if (lastBotMessage) {
+      if (lastBotMessage.message === 'WAITING_FEEDBACK') {
+        setIsWaitingFeedback(true);
+      } else if (lastBotMessage.message === 'BUY') {
+        setIsWaitingFeedback(false); // Ensure isWaitingFeedback is false
+        setShowFeedbackForm(true);
+      } else {
+        setIsWaitingFeedback(false);
+      }
+    } else {
+      setIsWaitingFeedback(false);
+    }
+
+  }, [conversation, conversations, currentChatId, userLanguage]);
+
+  // Redefine isWaitingFeedback based on the entire conversation
+  // **Removed this redundant variable as we handled it in useEffect above**
+  // const isWaitingFeedback = (conversation.length > 0 && conversation[conversation.length - 1].bot && !isLoading && conversation[conversation.length - 1].bot?.message === 'WAITING_FEEDBACK');
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(input);
+    }
+  };
+
   const handleNewChat = async () => {
     setCurrentChatId(null);
     setConversation([]);
     router.push('/');
   };
 
-  // Function to scroll to the bottom of the chat
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  /**
-   * Sends a message either by creating a new chat or updating an existing one.
-   * @param message The message string to send.
-   * @param botResponse Optional hardcoded bot response for example prompts.
-   */
+  // Determine if current scenario is a follow-up feedback scenario
+  // Simple logic: If last bot message had an array of items, next user message is considered feedback
+  function isFeedbackScenario(): boolean {
+    // Find the last bot message with items array
+    for (let i = conversation.length - 1; i >= 0; i--) {
+      const msg = conversation[i];
+      if (msg.bot && Array.isArray(msg.bot.message) && msg.bot.message.length > 0) {
+        // Found a look suggestion bot message
+        return true;
+      }
+    }
+    return false;
+  }
+
+  const startBotResponseChecking = (chatId: string) => {
+    if (botResponseCheckInterval.current) {
+      clearInterval(botResponseCheckInterval.current);
+    }
+
+    botResponseCheckInterval.current = setInterval(async () => {
+      try {
+        const chats = await getChats();
+        setConversations(chats);
+
+        const chat = chats.find((c: { id: string; }) => c.id === chatId);
+        if (chat) {
+          setConversation(chat.conversation);
+          const lastBotMessageIndex = chat.conversation.map((msg: ConversationMessage) => !!msg.bot).lastIndexOf(true);
+          if (lastBotMessageIndex !== -1) {
+            const lastBotMessage = chat.conversation[lastBotMessageIndex].bot;
+            if (lastBotMessage && lastBotMessage["in-progress"] == false) {
+              setIsLoading(false);
+              scrollToBottom();
+              if (botResponseCheckInterval.current) {
+                clearInterval(botResponseCheckInterval.current);
+                botResponseCheckInterval.current = null;
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching chats during bot response check:', error);
+      }
+    }, 1000);
+  };
+
   const sendMessage = async (message: string, botResponse?: BotResponse) => {
     if (!message.trim()) return;
 
@@ -372,67 +552,53 @@ export function FashionSearchChat() {
     setIsLoading(true);
 
     if (isAwaitingEmail) {
-      // Awaiting user's email input
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (emailRegex.test(message.trim())) {
-        // Valid email
         const email = message.trim();
         setUserData(prev => ({ ...prev, email }));
         localStorage.setItem('email', email);
         setIsAwaitingEmail(false);
 
         try {
-          // Sign up the user
-          await signupUser(email);
+          const response = await signupUser(email);
+          setUserData(prev => ({ ...prev, id: response.id }));
+          localStorage.setItem('id', response.id);
 
           if (pendingConversation.length > 0) {
-            // Add pending conversation
             const updatedConversation = [...conversation, { user: message }, ...pendingConversation];
             setConversation(updatedConversation);
             setPendingConversation([]);
             scrollToBottom();
 
-            // Create chat
+            const resultCheck = await checkChat(updatedConversation, userLanguage);
+
             const newChat = await createChat(email, updatedConversation);
             setCurrentChatId(newChat.id);
-            setTimeout(() => {
-              updateChatMessages(newChat.id, updatedConversation, searchType);
-              startBotResponseChecking(newChat.id);
-            }, 1000);
+            updateChatMessages(newChat.id, updatedConversation, resultCheck.response);
+            startBotResponseChecking(newChat.id);
             return;
           } else {
-            // No pending messages
-            // Add user's email message to conversation
             const updatedConversation = [...conversation, { user: message }];
             setConversation(updatedConversation);
             scrollToBottom();
 
-            // Create chat
-            try {
-              const newChat = await createChat(email, updatedConversation);
-              setCurrentChatId(newChat.id);
-              router.replace(`/?chat=${newChat.id}`);
-              setTimeout(() => {
-                updateChatMessages(newChat.id, updatedConversation, searchType);
-                startBotResponseChecking(newChat.id);
-              }, 1000);
-            } catch (error) {
-              console.error('Error creating chat:', error);
-              const errorBotMessage: ConversationMessage = { bot: { inProgress: false, progressMessage: "", message: "" } };
-              setConversation(prev => [...prev, errorBotMessage]);
-              setIsLoading(false);
-            }
+            const resultCheck = await checkChat(updatedConversation, userLanguage);
+
+            const newChat = await createChat(email, updatedConversation);
+            setCurrentChatId(newChat.id);
+            setTimeout(() => router.replace(`/?chat=${newChat.id}`), 10000);
+            updateChatMessages(newChat.id, updatedConversation, resultCheck.response);
+            startBotResponseChecking(newChat.id);
             return;
           }
         } catch (error) {
           console.error('Error during signup or creating chat:', error);
-          const botMessage: ConversationMessage = { bot: { inProgress: false, progressMessage: "", message: "" } };
+          const botMessage: ConversationMessage = { bot: { "in-progress": false, "progress-message": "", message: "" } };
           setConversation(prev => [...prev, botMessage ]);
           setIsLoading(false);
         }
       } else {
-        // Invalid email
-        const botMessage: ConversationMessage = { bot: { inProgress: false, progressMessage: "", message: getLocalizedText(userLanguage, "invalidEmail") } };
+        const botMessage: ConversationMessage = { bot: { "in-progress": false, "progress-message": "", message: getLocalizedText(userLanguage, "invalidEmail") } };
         setConversation(prev => [...prev, botMessage ]);
         setIsLoading(false);
       }
@@ -440,34 +606,29 @@ export function FashionSearchChat() {
     }
 
     if (botResponse) {
-      // This is an example prompt with a hardcoded bot response
       const userMessage: ConversationMessage = { user: message };
       const botMessage: ConversationMessage = { bot: botResponse };
 
       if (!userData.email) {
-        // Ask for email
-        const emailPrompt: ConversationMessage = { bot: { inProgress: false, progressMessage: "", message: getLocalizedText(userLanguage, "askEmail") } };
+        const emailPrompt: ConversationMessage = { bot: { "in-progress": false, "progress-message": "", message: getLocalizedText(userLanguage, "askEmail") } };
         setConversation(prev => [...prev, userMessage, emailPrompt ]);
         setIsAwaitingEmail(true);
-        // Store pending conversation
         setPendingConversation([botMessage]);
         setIsLoading(false);
         return;
       } else {
-        // Email is set, proceed to add message and create chat
         const updatedConversation = [...conversation, userMessage, botMessage];
         setConversation(updatedConversation);
         setIsLoading(false);
         scrollToBottom();
 
-        // Create chat
         try {
           const newChat = await createChat(userData.email, updatedConversation);
           setCurrentChatId(newChat.id);
           router.replace(`/?chat=${newChat.id}`);
         } catch (error) {
           console.error('Error creating chat after example prompt:', error);
-          const errorBotMessage: ConversationMessage = { bot: { inProgress: false, progressMessage: "", message: "" } };
+          const errorBotMessage: ConversationMessage = { bot: { "in-progress": false, "progress-message": "", message: "" } };
           setConversation(prev => [...prev, errorBotMessage ]);
           setIsLoading(false);
         }
@@ -475,14 +636,12 @@ export function FashionSearchChat() {
       }
     }
 
-    // Proceed with normal message handling
     const userMessage: ConversationMessage = { user: message };
     const currentConversation = [...conversation, userMessage];
     setConversation(currentConversation);
 
     if (!userData.email) {
-      // Ask for email
-      const botMessage: ConversationMessage = { bot: { inProgress: false, progressMessage: "", message: getLocalizedText(userLanguage, "askEmail") } };
+      const botMessage: ConversationMessage = { bot: { "in-progress": false, "progress-message": "", message: getLocalizedText(userLanguage, "askEmail") } };
       setConversation(prev => [...prev, botMessage ]);
       setIsAwaitingEmail(true);
       setPendingConversation([]);
@@ -490,730 +649,186 @@ export function FashionSearchChat() {
       return;
     }
 
-    // Check if enough preferences
-    const result = await checkChat(currentConversation, userLanguage);
-    
-    if (result.response == 'SPECIFIC' || result.response == 'ABSTRACT') {
-      setSearchType(result.response);
+    // Check if it's a feedback scenario
+    const isFollowUp = isFeedbackScenario();
 
-      if (currentChatId) {
-        // Update chat
-        updateChatMessages(currentChatId, currentConversation, result.response);
-        startBotResponseChecking(currentChatId);
-      } else {
-        try {
-          // Create chat
-          await signupUser(userData.email);
-          const newChat = await createChat(userData.email, currentConversation);
-          setCurrentChatId(newChat.id);
-          updateChatMessages(newChat.id, currentConversation, result.response);
-          startBotResponseChecking(newChat.id);
-          router.replace(`/?chat=${newChat.id}`);
-        } catch (error) {
-          console.error('Error starting new chat:', error);
-          const botMessage: ConversationMessage = { bot: { message: "", "inProgress": false } };
+    if (!isFollowUp) {
+      // Initial logic - Check preferences
+      try {
+        const result = await checkChat(currentConversation, userLanguage);
+        if (result.response === 'SPECIFIC' || result.response === 'ABSTRACT') {
+          setSearchType(result.response);
+
+          if (currentChatId) {
+            updateChatMessages(currentChatId, currentConversation, result.response);
+            startBotResponseChecking(currentChatId);
+          } else {
+            try {
+              await signupUser(userData.email);
+              const newChat = await createChat(userData.email, currentConversation);
+              setCurrentChatId(newChat.id);
+              updateChatMessages(newChat.id, currentConversation, result.response);
+              startBotResponseChecking(newChat.id);
+              router.replace(`/?chat=${newChat.id}`);
+            } catch (error) {
+              console.error('Error starting new chat:', error);
+              const botMessage: ConversationMessage = { bot: { message: "", "in-progress": false } };
+              setConversation(prev => [...prev, botMessage ]);
+              setIsLoading(false);
+            }
+          }
+        } else if (result.response === 'MULTIPLE')  {
+          const botMessage: ConversationMessage = { bot: { message: getLocalizedText(userLanguage, "createChatMutipleError"), "in-progress": false } };
+          setConversation(prev => [...prev, botMessage ]);
+          setIsLoading(false);
+        } else {
+          const botMessage: ConversationMessage = { bot: { message: result.response, "in-progress": false } };
           setConversation(prev => [...prev, botMessage ]);
           setIsLoading(false);
         }
-      }
-    } else if (result.response === 'MULTIPLE')  {
-      // Display result.response message on the chat
-      const botMessage: ConversationMessage = { bot: { message: getLocalizedText(userLanguage, "createChatMutipleError"), "inProgress": false } };
-      setConversation(prev => [...prev, botMessage ]);
-      setIsLoading(false);
-    } else {
-      // Display result.response message on the chat
-      const botMessage: ConversationMessage = { bot: { message: result.response, "inProgress": false } };
-      setConversation(prev => [...prev, botMessage ]);
-      setIsLoading(false);
-    }
-  };
-
-  /**
-   * Updates the chat message on the server and starts checking for bot responses.
-   * @param chatId The ID of the chat to update.
-   * @param updatedConversation The updated conversation array.
-   * @param searchType The type of search (e.g., SPECIFIC, ABSTRACT).
-   */
-  const updateChatMessages = (chatId: string, updatedConversation: ConversationMessage[], searchType: string) => {
-    // Call updateChat API and handle the new response schema
-    fetch(`${API_BASE_URL}/updateChat/${chatId}`, { // Updated URL
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ conversation: updatedConversation, searchType: searchType, language: userLanguage })
-    })
-    .then(async response => {
-      const data = await response.json();
-      if (!response.ok) {
-        // Handle errors based on new error response schema
-        throw data;
-      }
-      // Update the conversation state with the latest data
-      if (data.status === "success" && data.data && data.data.conversation) {
-        setConversation(data.data.conversation);
-      }
-    })
-    .catch(error => {
-      console.error('Error updating chat:', error);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if (error.errors && Array.isArray(error.errors)) {
-        const botMessage: ConversationMessage = {
-          bot: {
-            inProgress: false,
-            progressMessage: "",
-            message: getLocalizedText(userLanguage, "updateChatError")
-          }
-        };
-        setConversation(prev => [...prev, botMessage ]);
-      } else {
-        // Generic error message
-        const botMessage: ConversationMessage = { bot: { inProgress: false, progressMessage: "", message: getLocalizedText(userLanguage, "updateChatError") } };
-        setConversation(prev => [...prev, botMessage ]);
-      }
-    });
-  };
-
-  /**
-   * Starts polling the backend to check for bot responses.
-   * @param chatId The ID of the chat to poll.
-   */
-  const startBotResponseChecking = (chatId: string) => {
-    // Clear any existing intervals or timeouts
-    if (botResponseCheckInterval.current) {
-      clearInterval(botResponseCheckInterval.current);
-    }
-    if (botResponseTimeout.current) {
-      clearTimeout(botResponseTimeout.current);
-    }
-
-    // Start the interval to check for bot responses every 5 seconds
-    botResponseCheckInterval.current = setInterval(async () => {
-      try {
-        const chats = await getChats();
-        setConversations(chats);
-
-        // Find the current chat
-        const chat = chats.find((c: { id: string; }) => c.id === chatId);
-        if (chat) {
-          // Update conversation state
-          setConversation(chat.conversation);
-          const lastBotMessageIndex = chat.conversation.map((msg: ConversationMessage) => !!msg.bot).lastIndexOf(true);
-          if (lastBotMessageIndex !== -1) {
-            const lastBotMessage = chat.conversation[lastBotMessageIndex].bot;
-            // Check "inProgress" field inside bot
-            if (lastBotMessage && lastBotMessage["in-progress"] == false) {
-              // Bot has finished processing, stop polling
-              setIsLoading(false);
-              stopBotResponseChecking();
-            }
-            // Else, continue polling
-          } else {
-            // No bot message yet, continue polling
-          }
-        }
       } catch (error) {
-        console.error('Error fetching chats during bot response check:', error);
+        console.error('Error during checkChat:', error);
+        const botMessage: ConversationMessage = { bot: { "in-progress": false, "progress-message": "", message: "" } };
+        setConversation(prev => [...prev, botMessage ]);
+        setIsLoading(false);
       }
-    }, 5000); // Every 5 seconds
+    } else {
+      // FOLLOW-UP scenario - call followUpChat
+      if (!currentChatId) {
+        // If no currentChatId, create a new chat first
+        try {
+          const newChat = await createChat(userData.email, currentConversation);
+          setCurrentChatId(newChat.id);
+          router.replace(`/?chat=${newChat.id}`);
+
+          // Call followUpChat
+          setTimeout(() => {
+            updateChatMessagesFollowUp(newChat.id, currentConversation, userLanguage);
+            startBotResponseChecking(newChat.id);
+            scrollToBottom();
+          }, 1000);         
+        } catch (error) {
+          console.error('Error handling follow-up chat creation:', error);
+          const botMessage: ConversationMessage = { bot: { "in-progress": false, "progress-message": "", message: "" } };
+          setConversation(prev => [...prev, botMessage ]);
+          setIsLoading(false);
+        }
+      } else {
+        // We have a chatId
+        try {
+          setTimeout(() => {
+            updateChatMessagesFollowUp(currentChatId, currentConversation, userLanguage);
+            startBotResponseChecking(currentChatId);
+            scrollToBottom();
+          }, 1000);
+        } catch (error) {
+          console.error('Error calling followUpChat:', error);
+          setIsLoading(false);
+        }
+      }
+    }
   };
 
-  /**
-   * Stops polling for bot responses.
-   */
-  const stopBotResponseChecking = () => {
-    if (botResponseCheckInterval.current) {
-      clearInterval(botResponseCheckInterval.current);
-      botResponseCheckInterval.current = null;
+  const handleSubmit: (e?: React.FormEvent) => Promise<void> = async (e) => {
+    if (e) {
+      e.preventDefault(); // Prevent the default form submission
     }
-    if (botResponseTimeout.current) {
-      clearTimeout(botResponseTimeout.current);
-      botResponseTimeout.current = null;
-    }
-  };
-
-  /**
-   * Handles the form submission event.
-   * @param e The form event.
-   */
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
     await sendMessage(input);
   };
 
-  /**
-   * Handle country change
-   */
   const handleCountryChange = (value: string) => {
     setUserData((prev) => ({ ...prev, country: value }));
     localStorage.setItem('country', value);
   };
 
-  /**
-   * Handle user logout
-   */
   const handleLogout = async () => {
     try {
       await removeUser(userData.email);
       localStorage.removeItem('country');
       localStorage.removeItem('email');
-      setUserData({ email: '', country: detectedDefaultCountry });
+      localStorage.removeItem('profile');
+      setUserData({ id : '', email: '', country: detectedDefaultCountry });
     } catch (error) {
       console.error('Error logging out:', error);
     }
   };
 
-  /**
-  * Handles example prompt clicks by sending the prompt and setting a hardcoded bot response.
-  * @param promptKey The key of the example prompt.
-  */
   const handleExampleClick = async (promptKey: keyof LocalizationStrings) => {
     const promptText = getLocalizedText(userLanguage, promptKey);
-    let hardcodedResponse: BotResponse | undefined = undefined;
-
-    // Define hardcoded responses based on promptKey and userLanguage
-    switch (promptKey) {
-      case "exampleMainPrompt1": // Pink Floral Print Short Dress with Sleeves
-        if (userLanguage === "brazilian_portuguese") {
-          hardcodedResponse = {
-            inProgress: false,
-            progressMessage: "",
-            message: [
-              {
-                lookNumber: 1,
-                searchType: "SPECIFIC",
-                preferences: "Vestido curto de estampa floral rosa com mangas",
-                message: "Vestido curto de estampa floral rosa com mangas",
-                items: [
-                  {
-                    itemName: "Vestido Floral",
-                    itemResults: [
-                      {
-                        lookNumber: 1,
-                        score: 95,
-                        product: {
-                          id: "prod_001",
-                          title: "Vestido Mini Floral Lightburst com Recortes - Zimmermann",
-                          price: 299.99,
-                          link: "https://www.zimmermann.com/us/tops-tank-cami/mini-dresses/lightburst-cut-out-mini-dress-red-floral.html",
-                          image: "https://www.zimmermann.com/media/catalog/product/3/_/3.1899dss246.refl.red-floral.jpg?quality=100&bg-color=255,255,255&fit=bounds&height=755&width=581&canvas=581:755",
-                          images_urls: [
-                            "https://www.zimmermann.com/media/catalog/product/3/_/3.1899dss246.refl.red-floral.jpg?quality=100&bg-color=255,255,255&fit=bounds&height=755&width=581&canvas=581:755",
-                            "https://www.zimmermann.com/media/catalog/product/3/_/3.1899dss246.refl.red-floral.jpg?quality=100&bg-color=255,255,255&fit=bounds&height=755&width=581&canvas=581:755"
-                          ],
-                          snippet: "Este vestido mini de floral com recortes elegantes é perfeito para ocasiões especiais, oferecendo um toque de sofisticação e estilo.",
-                          short_description: "Vestido mini de 4 pessoas com fácil montagem.",
-                          long_description: "Este vestido mini de camping para 4 pessoas é projetado para conforto e durabilidade...",
-                          image_attributes: {
-                            waterproof: true,
-                            color: "Green"
-                          },
-                          image_classifications: {
-                            type: "Vestido",
-                            usage: "Festas"
-                          },
-                          variants: [
-                            {
-                              variantId: "var_001a",
-                              color: "Rosa",
-                              price: 299.99
-                            },
-                            {
-                              variantId: "var_001b",
-                              color: "Azul",
-                              price: 299.99
-                            }
-                          ]
-                        },
-                        explanation: "Alta pontuação devido à excelente classificação à prova d'água e interior espaçoso."
-                      },
-                      // ... more product results
-                    ]
-                  }
-                  // ... more items
-                ]
-              }
-              // ... more message
-            ]
-          };
-        } else {
-          // Hardcoded responses for other languages (e.g., English)
-          hardcodedResponse = {
-            inProgress: false,
-            progressMessage: "",
-            message: [
-              {
-                lookNumber: 1,
-                searchType: "SPECIFIC",
-                preferences: "Pink Floral Print Short Dress with Sleeves",
-                message: "Pink Floral Print Short Dress with Sleeves",
-                items: [
-                  {
-                    itemName: "Floral Dress",
-                    itemResults: [
-                      {
-                        lookNumber: 1,
-                        score: 95,
-                        product: {
-                          id: "prod_001",
-                          title: "Lightburst Cut-Out Mini Dress Red Floral - Zimmermann",
-                          price: 299.99,
-                          link: "https://www.zimmermann.com/us/tops-tank-cami/mini-dresses/lightburst-cut-out-mini-dress-red-floral.html",
-                          image: "https://www.zimmermann.com/media/catalog/product/1/_/1.1899dss246.refl.red-floral.jpg?quality=100&bg-color=255,255,255&fit=bounds&height=755&width=581&canvas=581:755",
-                          images_urls: [
-                            "https://www.zimmermann.com/media/catalog/product/1/_/1.1899dss246.refl.red-floral.jpg?quality=100&bg-color=255,255,255&fit=bounds&height=755&width=581&canvas=581:755",
-                            "https://www.zimmermann.com/media/catalog/product/3/_/3.1899dss246.refl.red-floral.jpg?quality=100&bg-color=255,255,255&fit=bounds&height=755&width=581&canvas=581:755"
-                          ],
-                          snippet: "A spacious dress perfect for special occasions, offering a touch of sophistication and style.",
-                          short_description: "Spacious 4-person tent with easy setup.",
-                          long_description: "This 4-person camping tent is designed for comfort and durability...",
-                          image_attributes: {
-                            waterproof: true,
-                            color: "Green"
-                          },
-                          image_classifications: {
-                            type: "Dress",
-                            usage: "Parties"
-                          },
-                          variants: [
-                            {
-                              variantId: "var_001a",
-                              color: "Pink",
-                              price: 299.99
-                            },
-                            {
-                              variantId: "var_001b",
-                              color: "Blue",
-                              price: 299.99
-                            }
-                          ]
-                        },
-                        explanation: "High score due to excellent waterproof rating and spacious interior."
-                      },
-                      // ... more product results
-                    ]
-                  }
-                  // ... more items
-                ]
-              }
-              // ... more message
-            ]
-          };
-        }
-        break;
-
-      case "exampleMainPrompt2": // Military Green Cargo Pants with Side Pockets
-        if (userLanguage === "brazilian_portuguese") {
-          hardcodedResponse = {
-            inProgress: false,
-            progressMessage: "",
-            message: [
-              {
-                lookNumber: 1,
-                searchType: "SPECIFIC",
-                preferences: "Calças cargo verde militar com bolsos laterais",
-                message: "Calças cargo verde militar com bolsos laterais",
-                items: [
-                  {
-                    itemName: "Calças Cargo",
-                    itemResults: [
-                      {
-                        lookNumber: 1,
-                        score: 95,
-                        product: {
-                          id: "prod_002",
-                          title: "Calças Cargo em Algodão e Linho - Celine",
-                          price: 399.99,
-                          link: "https://www.celine.com/en-us/celine-shop-women/ready-to-wear/pants-and-shorts/cargo-pants-in-cotton-linen-2Z552219I.02MK.html",
-                          image: "https://twicpics.celine.com/product-prd/images/large/2Z552219I.02MK_1_SS24_W.jpg?twic=v1/cover=1:1/resize-max=900",
-                          images_urls: [
-                            "https://twicpics.celine.com/product-prd/images/large/2Z552219I.02MK_1_SS24_W.jpg?twic=v1/cover=1:1/resize-max=900",
-                            "https://twicpics.celine.com/product-prd/images/large/2Z552219I.02MK_3_SS24_W.jpg?twic=v1/cover=820x820/max=2000"
-                          ],
-                          snippet: "Calças cargo elegantes em algodão e linho, com bolsos laterais profundos para um estilo utilitário sofisticado.",
-                          short_description: "Calças cargo elegantes em algodão e linho.",
-                          long_description: "Estas calças cargo combinam funcionalidade com estilo, perfeitas para um visual urbano e moderno...",
-                          image_attributes: {
-                            waterproof: true,
-                            color: "Green"
-                          },
-                          image_classifications: {
-                            type: "Pants",
-                            usage: "Urban"
-                          },
-                          variants: [
-                            {
-                              variantId: "var_002a",
-                              color: "Green",
-                              price: 399.99
-                            },
-                            {
-                              variantId: "var_002b",
-                              color: "Brown",
-                              price: 399.99
-                            }
-                          ]
-                        },
-                        explanation: "Estas calças cargo combinam funcionalidade com estilo, perfeitas para um visual urbano e moderno."
-                      },
-                      // ... more product results
-                    ]
-                  }
-                  // ... more items
-                ]
-              }
-              // ... more message
-            ]
-          };
-        } else {
-          // Hardcoded responses for other languages (e.g., English)
-          hardcodedResponse = {
-            inProgress: false,
-            progressMessage: "",
-            message: [
-              {
-                lookNumber: 1,
-                searchType: "SPECIFIC",
-                preferences: "Military Green Cargo Pants with Side Pockets",
-                message: "Military Green Cargo Pants with Side Pockets",
-                items: [
-                  {
-                    itemName: "Cargo Pants",
-                    itemResults: [
-                      {
-                        lookNumber: 1,
-                        score: 95,
-                        product: {
-                          id: "prod_002",
-                          title: "Cotton Linen Cargo Pants - Celine",
-                          price: 399.99,
-                          link: "https://www.celine.com/en-us/celine-shop-women/ready-to-wear/pants-and-shorts/cargo-pants-in-cotton-linen-2Z552219I.02MK.html",
-                          image: "https://twicpics.celine.com/product-prd/images/large/2Z552219I.02MK_1_SS24_W.jpg?twic=v1/cover=1:1/resize-max=900",
-                          images_urls: [
-                            "https://twicpics.celine.com/product-prd/images/large/2Z552219I.02MK_1_SS24_W.jpg?twic=v1/cover=1:1/resize-max=900",
-                            "https://twicpics.celine.com/product-prd/images/large/2Z552219I.02MK_3_SS24_W.jpg?twic=v1/cover=820x820/max=2000"
-                          ],
-                          snippet: "Elegant cotton and linen cargo pants with deep side pockets for a sophisticated utilitarian style.",
-                          short_description: "Elegant cotton and linen cargo pants.",
-                          long_description: "These cargo pants blend functionality with style, perfect for an urban and modern look...",
-                          image_attributes: {
-                            waterproof: true,
-                            color: "Green"
-                          },
-                          image_classifications: {
-                            type: "Pants",
-                            usage: "Urban"
-                          },
-                          variants: [
-                            {
-                              variantId: "var_002a",
-                              color: "Green",
-                              price: 399.99
-                            },
-                            {
-                              variantId: "var_002b",
-                              color: "Brown",
-                              price: 399.99
-                            }
-                          ]
-                        },
-                        explanation: "These cargo pants blend functionality with style, perfect for an urban and modern look."
-                      },
-                      // ... more product results
-                    ]
-                  }
-                  // ... more items
-                ]
-              }
-              // ... more message
-            ]
-          };
-        }
-        break;
-
-      case "exampleMainPrompt3": // Black Tweed Blazer with Golden Buttons
-        if (userLanguage === "brazilian_portuguese") {
-          hardcodedResponse = {
-            inProgress: false,
-            progressMessage: "",
-            message: [
-              {
-                lookNumber: 1,
-                searchType: "SPECIFIC",
-                preferences: "Blazer tweed preto com botões dourados",
-                message: "Blazer tweed preto com botões dourados",
-                items: [
-                  {
-                    itemName: "Blazer Tweed",
-                    itemResults: [
-                      {
-                        lookNumber: 1,
-                        score: 95,
-                        product: {
-                          id: "prod_003",
-                          title: "Blazer Tweed com Botões Dourados - Balmain",
-                          price: 599.99,
-                          link: "https://us.balmain.com/en/p/buttons-tweed-jacket-DF1SK249KG430PA.html",
-                          image: "https://media.balmain.com/image/upload/f_auto,q_auto,dpr_auto/w_3000/sfcc/balmain/hi-res/DF1SK249KG430PAF?_i=AG",
-                          images_urls: [
-                            "https://media.balmain.com/image/upload/f_auto,q_auto,dpr_auto/w_3000/sfcc/balmain/hi-res/DF1SK249KG430PAF?_i=AG",
-                            "https://media.balmain.com/image/upload/f_auto,q_auto,dpr_auto/w_3000/sfcc/balmain/hi-res/DF1SK249KG430PAA?_i=AG"
-                          ],
-                          snippet: "Blazer de tweed preto com botões dourados, combinando tradição com um toque de luxo moderno.",
-                          short_description: "Blazer de tweed elegante com botões dourados.",
-                          long_description: "Este blazer de tweed preto é perfeito para adicionar um toque sofisticado e elegante ao seu guarda-roupa formal...",
-                          image_attributes: {
-                            waterproof: true,
-                            color: "Black"
-                          },
-                          image_classifications: {
-                            type: "Blazer",
-                            usage: "Formal"
-                          },
-                          variants: [
-                            {
-                              variantId: "var_003a",
-                              color: "Black",
-                              price: 599.99
-                            },
-                            {
-                              variantId: "var_003b",
-                              color: "Navy",
-                              price: 599.99
-                            }
-                          ]
-                        },
-                        explanation: "Este blazer tweed preto é perfeito para adicionar um toque sofisticado e elegante ao seu guarda-roupa formal."
-                      },
-                      // ... more product results
-                    ]
-                  }
-                  // ... more items
-                ]
-              }
-              // ... more message
-            ]
-          };
-        } else {
-          // Hardcoded responses for other languages (e.g., English)
-          hardcodedResponse = {
-            inProgress: false,
-            progressMessage: "",
-            message: [
-              {
-                lookNumber: 1,
-                searchType: "SPECIFIC",
-                preferences: "Black Tweed Blazer with Golden Buttons",
-                message: "Black Tweed Blazer with Golden Buttons",
-                items: [
-                  {
-                    itemName: "Tweed Blazer",
-                    itemResults: [
-                      {
-                        lookNumber: 1,
-                        score: 95,
-                        product: {
-                          id: "prod_003",
-                          title: "Black Tweed Blazer with Golden Buttons - Balmain",
-                          price: 599.99,
-                          link: "https://us.balmain.com/en/p/buttons-tweed-jacket-DF1SK249KG430PA.html",
-                          image: "https://media.balmain.com/image/upload/f_auto,q_auto,dpr_auto/w_3000/sfcc/balmain/hi-res/DF1SK249KG430PAF?_i=AG",
-                          images_urls: [
-                            "https://media.balmain.com/image/upload/f_auto,q_auto,dpr_auto/w_3000/sfcc/balmain/hi-res/DF1SK249KG430PAF?_i=AG",
-                            "https://media.balmain.com/image/upload/f_auto,q_auto,dpr_auto/w_3000/sfcc/balmain/hi-res/DF1SK249KG430PAA?_i=AG"
-                          ],
-                          snippet: "Black tweed blazer with golden buttons, blending tradition with a touch of modern luxury.",
-                          short_description: "Elegant tweed blazer with golden buttons.",
-                          long_description: "This black tweed blazer is perfect for adding a sophisticated and elegant touch to your formal wardrobe...",
-                          image_attributes: {
-                            waterproof: true,
-                            color: "Black"
-                          },
-                          image_classifications: {
-                            type: "Blazer",
-                            usage: "Formal"
-                          },
-                          variants: [
-                            {
-                              variantId: "var_003a",
-                              color: "Black",
-                              price: 599.99
-                            },
-                            {
-                              variantId: "var_003b",
-                              color: "Navy",
-                              price: 599.99
-                            }
-                          ]
-                        },
-                        explanation: "This black tweed blazer is perfect for adding a sophisticated and elegant touch to your formal wardrobe."
-                      },
-                      // ... more product results
-                    ]
-                  }
-                  // ... more items
-                ]
-              }
-              // ... more message
-            ]
-          };
-        }
-        break;
-
-      case "exampleMainPrompt4": // Metallic Mesh Sleeveless Top
-        if (userLanguage === "brazilian_portuguese") {
-          hardcodedResponse = {
-            inProgress: false,
-            progressMessage: "",
-            message: [
-              {
-                lookNumber: 1,
-                searchType: "SPECIFIC",
-                preferences: "Top sem mangas de malha metálica",
-                message: "Top sem mangas de malha metálica",
-                items: [
-                  {
-                    itemName: "Top Metálico",
-                    itemResults: [
-                      {
-                        lookNumber: 1,
-                        score: 95,
-                        product: {
-                          id: "prod_004",
-                          title: "Top Camisola de Malha Metálica - Versace",
-                          price: 199.99,
-                          link: "https://www.versace.com/us/en/women/clothing/shirts-tops/metal-mesh-camisole-top/1017450-1A12739_1X050.html",
-                          image: "https://www.versace.com/dw/image/v2/BGWN_PRD/on/demandware.static/-/Sites-ver-master-catalog/default/dwc64eb860/original/90_1017450-1A12739_1X050_18_MetalMeshCamisoleTop-Shirts~~Tops-Versace-online-store_0_2.jpg?sw=850&q=85&strip=true",
-                          images_urls: [
-                            "https://www.versace.com/dw/image/v2/BGWN_PRD/on/demandware.static/-/Sites-ver-master-catalog/default/dwc64eb860/original/90_1017450-1A12739_1X050_18_MetalMeshCamisoleTop-Shirts~~Tops-Versace-online-store_0_2.jpg?sw=850&q=85&strip=true",
-                            "https://www.versace.com/dw/image/v2/BGWN_PRD/on/demandware.static/-/Sites-ver-master-catalog/default/dwaa0ecbf1/original/90_1017450-1A12739_1X050_10_MetalMeshCamisoleTop-Shirts~~Tops-Versace-online-store_1_2.jpg?sw=850&q=85&strip=true"
-                          ],
-                          snippet: "Top camisola sem mangas de malha metálica, perfeito para um visual moderno e ousado.",
-                          short_description: "Top camisola sem mangas de malha metálica.",
-                          long_description: "Este top sem mangas de malha metálica adiciona um toque futurista e elegante ao seu guarda-roupa, ideal para eventos noturnos...",
-                          image_attributes: {
-                            waterproof: true,
-                            color: "Silver"
-                          },
-                          image_classifications: {
-                            type: "Top",
-                            usage: "Evening"
-                          },
-                          variants: [
-                            {
-                              variantId: "var_004a",
-                              color: "Silver",
-                              price: 199.99
-                            },
-                            {
-                              variantId: "var_004b",
-                              color: "Gold",
-                              price: 199.99
-                            }
-                          ]
-                        },
-                        explanation: "Este top sem mangas de malha metálica adiciona um toque futurista e elegante ao seu guarda-roupa, ideal para eventos noturnos."
-                      },
-                      // ... more product results
-                    ]
-                  }
-                  // ... more items
-                ]
-              }
-              // ... more message
-            ]
-          };
-        } else {
-          // Hardcoded responses for other languages (e.g., English)
-          hardcodedResponse = {
-            inProgress: false,
-            progressMessage: "",
-            message: [
-              {
-                lookNumber: 1,
-                searchType: "SPECIFIC",
-                preferences: "Metallic Mesh Sleeveless Top",
-                message: "Metallic Mesh Sleeveless Top",
-                items: [
-                  {
-                    itemName: "Metallic Top",
-                    itemResults: [
-                      {
-                        lookNumber: 1,
-                        score: 95,
-                        product: {
-                          id: "prod_004",
-                          title: "Metallic Mesh Sleeveless Camisole Top - Versace",
-                          price: 199.99,
-                          link: "https://www.versace.com/us/en/women/clothing/shirts-tops/metal-mesh-camisole-top/1017450-1A12739_1X050.html",
-                          image: "https://www.versace.com/dw/image/v2/BGWN_PRD/on/demandware.static/-/Sites-ver-master-catalog/default/dwc64eb860/original/90_1017450-1A12739_1X050_18_MetalMeshCamisoleTop-Shirts~~Tops-Versace-online-store_0_2.jpg?sw=850&q=85&strip=true",
-                          images_urls: [
-                            "https://www.versace.com/dw/image/v2/BGWN_PRD/on/demandware.static/-/Sites-ver-master-catalog/default/dwc64eb860/original/90_1017450-1A12739_1X050_18_MetalMeshCamisoleTop-Shirts~~Tops-Versace-online-store_0_2.jpg?sw=850&q=85&strip=true",
-                            "https://www.versace.com/dw/image/v2/BGWN_PRD/on/demandware.static/-/Sites-ver-master-catalog/default/dwaa0ecbf1/original/90_1017450-1A12739_1X050_10_MetalMeshCamisoleTop-Shirts~~Tops-Versace-online-store_1_2.jpg?sw=850&q=85&strip=true"
-                          ],
-                          snippet: "Metallic mesh sleeveless camisole top, perfect for a modern and bold look.",
-                          short_description: "Metallic sleeveless camisole top.",
-                          long_description: "This metallic sleeveless mesh top adds a futuristic and elegant touch to your wardrobe, ideal for evening events...",
-                          image_attributes: {
-                            waterproof: true,
-                            color: "Silver"
-                          },
-                          image_classifications: {
-                            type: "Top",
-                            usage: "Evening"
-                          },
-                          variants: [
-                            {
-                              variantId: "var_004a",
-                              color: "Silver",
-                              price: 199.99
-                            },
-                            {
-                              variantId: "var_004b",
-                              color: "Gold",
-                              price: 199.99
-                            }
-                          ]
-                        },
-                        explanation: "This metallic mesh sleeveless top adds a futuristic and elegant touch to your wardrobe, ideal for evening events."
-                      },
-                      // ... more product results
-                    ]
-                  }
-                  // ... more items
-                ]
-              }
-              // ... more message
-            ]
-          };
-        }
-        break;
-
-      default:
-        hardcodedResponse = undefined; // Default empty response for undefined prompts
-    }
-
+    // Retrieve the hardcoded response based on promptKey and userLanguage
+    const responseByPrompt = hardcodedResponses[promptKey as keyof typeof hardcodedResponses];
+    const hardcodedResponse: BotResponse | undefined = responseByPrompt
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? (responseByPrompt as any)[userLanguage] || responseByPrompt['brazilian_portuguese']
+      : undefined;
     // Reset currentChatId to ensure a new chat is created
     setCurrentChatId(null);
-
     // Send the prompt text as a user message, along with the hardcoded bot response
     await sendMessage(promptText, hardcodedResponse);
   };
 
-  // Get the last bot message for loading indicators
-  const lastBotMessage = conversation.map((msg) => msg.bot).filter(Boolean).pop();
+  const handleStarClick = (value: number) => {
+    setStarRating(value);
+    saveStarsFeedback(currentChatId, value);
+    setShowFeedbackPopup(true);
+  };
+
+  const handleSubmitFeedback = () => {
+    saveOpenFeedback(currentChatId, writtenFeedback);
+    setShowFeedbackPopup(false);
+  };
+
+  const handleProfileConfirmation = () => {
+    router.push('/editProfile');
+  };
+
+  // Update handleFeedbackSuggestionClick to accept a string instead of a key
+  const handleFeedbackSuggestionClick = (suggestionText: string) => {
+    setInput((prevInput) => prevInput ? `${prevInput} ${suggestionText}` : suggestionText);
+    setIsWaitingFeedback(false);
+    if(suggestionText == "Quero comprar" || suggestionText == "I want to buy") {
+      sendMessage(suggestionText);
+    }
+  };
+
+  const profile = (typeof window !== 'undefined') ? localStorage.getItem('profile') : null;
+  const profileIsEmpty = !profile || profile === "{}";
+
+  // **Define lastBotMessage for consistency**
+  const lastBotMessage = conversation[conversation.length - 1]?.bot;
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen w-screen bg-gray-50 text-gray-900 overflow-hidden">
-      {/* Sidebar */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 flex items-center justify-between p-4">
+          {!sidebarOpen && (
+            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
+              <Menu className="w-4 h-4 text-gray-600" />
+            </Button>
+          )}
+          {sidebarOpen && (
+            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(false)}>
+              <ChevronLeft className="w-4 h-4" />
+          </Button>
+          )}
+          <Image
+            src={logo}
+            alt="Logo"
+            width={40}
+            height={10}
+            className="object-contain cursor-pointer"
+            unoptimized
+            onClick={() => router.replace('/')}
+          />
+        <div className="w-8 h-8" />
+      </div>
       <div
         className={cn(
-          "fixed top-0 left-0 z-50 h-full bg-white shadow-lg flex flex-col transition-all duration-300 ease-in-out",
-          sidebarOpen ? "w-64" : "w-16"
+          "fixed top-0 left-0 z-40 h-full bg-white shadow-lg flex flex-col transition-transform duration-300 ease-in-out",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+          sidebarOpen ? "w-64" : "md:w-16"
         )}
       >
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+        <div className="hidden md:block flex items-center justify-between p-4 border-b border-gray-200">
           {sidebarOpen && (
             <div className="flex items-center justify-between w-full bg-white">
               <div className="flex items-center">
@@ -1222,8 +837,9 @@ export function FashionSearchChat() {
                   alt="Logo"
                   width={120}
                   height={30}
-                  className="object-contain"
+                  className="object-contain cursor-pointer"
                   unoptimized
+                  onClick={() => router.replace('/')}
                 />
               </div>
               <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(false)}>
@@ -1232,41 +848,56 @@ export function FashionSearchChat() {
             </div>
           )}
           {!sidebarOpen && (
-            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
-              <Menu className="w-4 h-4 bg-white" />
-            </Button>
+            <div className="w-full flex justify-end">
+              <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
+                <Menu className="w-4 h-4 bg-white" />
+              </Button>
+            </div>
           )}
         </div>
 
-        <div className="p-2">
+        <div className="pt-20 md:p-2 mb-2">
           <Button
             variant="ghost"
             onClick={handleNewChat}
-            className="text-gray-600 hover:text-gray-900 flex items-center font-nunito font-medium"
+            className="text-gray-600 hover:text-gray-900 flex items-center font-nunito w-full justify-start"
           >
-            <PlusCircle className="w-4 h-4 mr-2" />
+            <PlusCircle className="w-4 h-4" />
             {sidebarOpen && getLocalizedText(userLanguage, "newChat")}
           </Button>
         </div>
 
         <ScrollArea className="flex-1 pb-20">
           <div className="p-2">
-            {conversations.filter(conv => currentChatId === conv.id).map((conv) => (
+          {conversations
+            .filter(conv => userData.id === conv.user_id)
+            .sort((a, b) => {
+              const dateA = new Date(a.created_at).getTime();
+              const dateB = new Date(b.created_at).getTime();
+              return dateB - dateA;
+            })
+            .map((conv) => (
               <button
                 key={conv.id}
-                onClick={() => router.push(`/?chat=${conv.id}`)}
+                onClick={() => {
+                  setSidebarOpen(false);
+                  router.push(`/?chat=${conv.id}`);
+                  setTimeout(() => {window.location.reload()}, 500);
+                }}
                 className={cn(
-                  "w-full text-left mb-1 rounded-lg transition-colors duration-200",
-                  sidebarOpen ? "p-2 hover:bg-gray-100 flex items-center gap-2" : "p-2 hover:bg-gray-100 flex justify-center"
+                  "w-full mb-1 rounded-lg transition-colors duration-200 focus:outline-none",
+                  sidebarOpen
+                    ? "p-2 hover:bg-gray-100 flex items-center gap-2"
+                    : "p-2 hover:bg-gray-100 flex justify-center"
                 )}
               >
                 {sidebarOpen ? (
                   <>
-                    <MessageSquare className="w-5 h-5 text-gray-600" />
+                    <MessageSquare className="w-5 h-5 text-gray-600 flex-shrink-0" />
                     <span className="truncate font-nunito font-medium">{conv.conversation[0]?.user}</span>
                   </>
                 ) : (
-                  <MessageSquare className="w-5 h-5 text-gray-600" />
+                  <MessageSquare className="w-5 h-5 text-gray-600 flex-shrink-0" />
                 )}
               </button>
             ))}
@@ -1322,8 +953,13 @@ export function FashionSearchChat() {
                       </SelectContent>
                     </Select>
                   </div>
+                  {(!profileIsEmpty) && (
+                    <Button onClick={() => router.push('/editProfile')} className="bg-[#f6213f] hover:bg-[#f6213f] w-full font-nunito font-medium">
+                      {getLocalizedText(userLanguage, "editProfile")}
+                    </Button>
+                  )}
                   {userData.email && (
-                    <Button className="bg-[#f6213f] hover:bg-[#f6213f] w-full font-nunito font-medium" onClick={handleLogout}>
+                    <Button className="bg-white border border-[#f6213f] text-[#f6213f] hover:bg-[#ffeaea] font-nunito font-medium w-full" onClick={handleLogout}>
                       {getLocalizedText(userLanguage, "logout")}
                     </Button>
                   )}
@@ -1334,28 +970,27 @@ export function FashionSearchChat() {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className={cn(
         "flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out",
-        sidebarOpen ? "md:ml-64 ml-16" : "ml-16"
+        sidebarOpen ? "md:ml-64 md:ml-16" : "md:ml-16"
       )}>
-        {/* Chat Area */}
-        <ScrollArea className={`flex-1 ${conversation.length > 0 ? 'pb-20' : ''}`}>
+        <ScrollArea className={`flex-1 ${conversation.length > 0 ? (isWaitingFeedback ? "pb-40 md:pb-32" : "pb-20") : ""}`}>
           <div className="flex-1 p-4">
-            {conversation.length === 0 ? (
+            {(conversation.length === 0 && !isLoading) ? (
               <div className="w-full max-w-2xl mx-auto px-4 text-center flex flex-col justify-center items-center min-h-screen">
                 <div className="relative inline-block">
                   <Image
                     src={logo}
                     alt="Fashion Search Chat Logo"
-                    width={256}
+                    width={128}
                     unoptimized
-                    className="mb-6 max-w-xs md:max-w-sm"
+                    className="mb-6 max-w-xs md:max-w-sm cursor-pointer"
+                    onClick={() => router.replace('/')}
                   />
                   <span className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">Beta</span>
                 </div>
-                <h1 className="text-2xl md:text-4xl font-nunito font-medium mb-2 text-gray-800 font-raleway">{getLocalizedText(userLanguage, "callMainPrompt")}</h1>
-                <p className="text-lg md:text-xl text-gray-600 mb-8 font-nunito font-medium">{getLocalizedText(userLanguage, "introMainMessage")}</p>
+                <h1 className="text-xl md:text-4xl font-nunito font-medium mb-2 text-gray-800 font-raleway">{getLocalizedText(userLanguage, "callHomePrompt")}</h1>
+                <p className="text-lg md:text-xl text-gray-600 mb-8 font-nunito font-medium">{getLocalizedText(userLanguage, "introHomeMessage")}</p>
                 <div className="space-y-4">
                   <form onSubmit={handleSubmit} className="flex flex-row gap-2 max-w-3xl mx-auto">
                     <textarea
@@ -1364,8 +999,8 @@ export function FashionSearchChat() {
                       onChange={(e) => setInput(e.target.value)}
                       placeholder={getLocalizedText(userLanguage, "describeItem")}
                       className="flex-1 border border-gray-300 focus:outline-none focus:border-[#f6213f] p-2 rounded-md resize-none overflow-y-auto font-nunito font-medium"
-                      rows={3}
-                      style={{ width: "75%" }} // Adjust textarea width to fit properly
+                      rows={2}
+                      style={{ width: "75%" }}
                       disabled={isLoading}
                     />
                     <button disabled={isLoading} type="submit" className="w-12 flex items-center justify-center">
@@ -1378,6 +1013,7 @@ export function FashionSearchChat() {
                     {exampleMainPromptsKeys.map((promptKey) => (
                       <Button
                         key={promptKey}
+                        type="button" // Added type="button" to prevent form submission
                         variant="outline"
                         onClick={() => handleExampleClick(promptKey)}
                         className="bg-white hover:bg-gray-100 text-gray-800 transition-colors duration-200 font-nunito font-medium"
@@ -1386,7 +1022,6 @@ export function FashionSearchChat() {
                       </Button>
                     ))}
                   </div>
-                  {/* Coming soon */}
                   <div className="flex justify-center">
                     <div className="relative group w-40 h-10 mt-2">
                       <button className="bg-[#f6213f] text-white hover:bg-[#d2102c] font-medium rounded-full text-sm px-6 py-2">
@@ -1395,8 +1030,7 @@ export function FashionSearchChat() {
                           <span>{getLocalizedText(userLanguage,"comingSoonFeatures")}</span>
                         </div>
                       </button>
-                      {/* Hover Overlay */}
-                      <div className="absolute hidden group-hover:flex bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 p-4 bg-white border border-gray-300 shadow-lg rounded-lg z-50">
+                      <div className="absolute hidden group-hover:flex bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 py-4 bg-white border border-gray-300 shadow-lg rounded-lg z-50">
                         <ul className="list-disc pl-5 text-sm text-gray-600 font-nunito space-y-2 text-left">
                           <li>
                             <strong>{getLocalizedText(userLanguage, "virtualFitPreviewTitle")}</strong><br />
@@ -1425,7 +1059,7 @@ export function FashionSearchChat() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-6 max-w-4xl mx-auto">
+              <div className="space-y-6 mt-16 md:mt-0 max-w-4xl mx-auto">
                 {conversation.map((message, i) => (
                   <div
                     key={i}
@@ -1434,33 +1068,18 @@ export function FashionSearchChat() {
                       message.user ? "justify-end" : "justify-start"
                     )}
                   >
-                    {/* Define conditions for readability */}
-                    {!message.user && message.bot && (
-                      (Array.isArray(message.bot.message) && message.bot.message.length > 0) ||
-                      (typeof message.bot.message === 'string' && message.bot.message.trim()) ||
-                      !message.bot.inProgress && !isLoading
-                    ) && (
-                      <Avatar className="mt-2 w-8 h-8">
-                        <AvatarFallback>
-                          <Sparkles className="w-6 h-6 text-[#f6213f]" />
-                        </AvatarFallback>
-                      </Avatar>
-                    )}
-                  
-                    {/* Determine if the message bubble should be displayed */}
                     {(message.user || 
                       (message.bot && (
                         (Array.isArray(message.bot.message) && message.bot.message.length > 0) ||
-                        (typeof message.bot.message === 'string' && message.bot.message.trim()) ||
-                        !message.bot.inProgress
+                        (typeof message.bot.message === 'string' && message.bot.message.trim())
                       ))
                     ) && (
                       <div
                         className={cn(
-                          "rounded-lg p-4 bg-white shadow-sm overflow-wrap break-word",
+                          "rounded-lg bg-white shadow-sm overflow-wrap break-word",
                           message.user
-                            ? "bg-[#f6213f]/30 text-gray-800 max-w-[70%] font-nunito font-medium"
-                            : "max-w-[80%] font-nunito font-medium"
+                            ? "p-4 bg-[#f6213f]/30 text-gray-800 max-w-[80%] font-nunito font-medium"
+                            : ((message.bot && message.bot.message && (Array.isArray(message.bot.message) && message.bot.message.length > 0)) ? "max-w-[100%] font-nunito font-medium" : "p-4 max-w-[100%] font-nunito font-medium")
                         )}
                       >
                         {message.user ? (
@@ -1468,50 +1087,50 @@ export function FashionSearchChat() {
                         ) : message.bot && message.bot.message ? (
                           Array.isArray(message.bot.message) && message.bot.message.length > 0 ? (
                             <div className="space-y-8">
-                              {message.bot.message.map((item: BotMessage, idx: number) => (
-                                <div key={idx} className="border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-                                  {item.searchType !== 'SPECIFIC' ? (
-                                    <div className="bg-[#f6213f] px-4 py-3 border-b border-gray-200">
-                                      <h2 className="text-lg font-semibold text-white flex items-center">
-                                        {item.message}
+                              {message.bot.message.map((item: BotMessage, idx: number) => {
+                                const totalPrice = item?.items?.filter(x => x.itemResults[0]?.product?.price).reduce((sum, current) => sum + Number(current?.itemResults[0]?.product?.price), 0);
+                                const formattedPrice = `R$${(totalPrice / 100).toFixed(2)}`;
+                                
+                                const hasResults = item?.items?.some(it => it.itemResults.length > 0);
+
+                                return (
+                                  <div key={idx} className="border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                                    <div className="bg-[#f6213f] px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+                                      <h2 className="text-lg font-bold text-white flex items-center">
+                                        {item.searchType === 'ABSTRACT' ? `Look ${idx + 1}: ${item.message} | ${formattedPrice}` : `${item.message}`}
                                       </h2>
                                     </div>
-                                  ) : (
-                                    <div className="bg-[#f6213f] px-4 py-3 border-b border-gray-200">
-                                      <h2 className="text-lg font-semibold text-white flex items-center">
-                                        {item.message}
-                                      </h2>
+                                    <div className="space-y-6">
+                                      {hasResults ? (
+                                        <ImprovedCarouselGrid items={item.items}/>
+                                      ) : (
+                                        !isLoading && (
+                                          <div className="bg-white rounded-lg font-nunito font-medium text-center p-4">
+                                            {getLocalizedText(userLanguage, "noResults")}
+                                          </div>
+                                        )
+                                      )}
                                     </div>
-                                  )}
-                                  <div className="p-4 space-y-6">
-                                    {item.items.map((itemObj: Item, idx2: number) => (
-                                      <div key={idx2}>
-                                        {item.searchType !== 'SPECIFIC' && (
-                                          <h1 className="text-lg text-gray-700 mb-4">
-                                            • {itemObj.itemName.charAt(0).toUpperCase() + itemObj.itemName.slice(1)}
-                                          </h1>
-                                        )}
-                                        <Carousel>
-                                          {itemObj.itemResults.map((result: ItemResult, idx3: number) => (
-                                            <ProductCard
-                                              key={idx3}
-                                              product={result.product}
-                                              explanation={result.explanation}
-                                              visitProductLabel={getLocalizedText(userLanguage, "visitProduct")}
-                                            />
-                                          ))}
-                                        </Carousel>
-                                      </div>
-                                    ))}
                                   </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           ) : typeof message.bot.message === 'string' && message.bot.message.trim() ? (
-                            <div className="bg-white rounded-lg font-nunito font-medium">
-                              {message.bot.message}
-                            </div>
-                          ) : !message.bot.inProgress && !isLoading ? (
+                            // Check if message is "WAITING_FEEDBACK" or "BUY"
+                            message.bot.message === "WAITING_FEEDBACK" ? (
+                              <div className="bg-white rounded-lg font-nunito font-medium">
+                                {getLocalizedText(userLanguage, "waitingFeedback")}
+                              </div>
+                            ) : message.bot.message === "BUY" ? (
+                              <div className="bg-white rounded-lg font-nunito font-medium">
+                                {getLocalizedText(userLanguage, "waitingBuy")}
+                              </div>
+                            ) : (
+                              <div className="bg-white rounded-lg font-nunito font-medium">
+                                {message.bot.message}
+                              </div>
+                            )
+                          ) : !message.bot["in-progress"] && !isLoading ? (
                             <div className="bg-white rounded-lg font-nunito font-medium">
                               {getLocalizedText(userLanguage, "noResults")}
                             </div>
@@ -1528,11 +1147,10 @@ export function FashionSearchChat() {
                       <div className="absolute inset-0 border-4 border-[#f6213f] rounded-full animate-spin" />
                       <Sparkles className="absolute inset-0 w-5 h-5 md:w-6 md:h-6 text-[#f6213f] m-auto" />
                     </div>
-                    {/* Display progress message */}
                     <span className="text-gray-500 text-base md:text-lg font-medium font-nunito flex-1">
                       {(() => {
-                        if (lastBotMessage && lastBotMessage.progressMessage) {
-                          return lastBotMessage.progressMessage;
+                        if (lastBotMessage && lastBotMessage["progress-message"]) {
+                          return lastBotMessage["progress-message"];
                         } else {
                           return getLocalizedText(userLanguage, "thinking");
                         }
@@ -1547,23 +1165,181 @@ export function FashionSearchChat() {
         </ScrollArea>
 
         {conversation.length > 0 && (
-          <div className="fixed bottom-0 left-16 right-0 p-4 bg-white border-t border-gray-200">
-            <form onSubmit={handleSubmit} className="flex flex-row gap-2 max-w-3xl mx-auto">
-              <textarea
-                onKeyDown={handleKeyDown}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder={getLocalizedText(userLanguage, "describeItem")}
-                className="flex-1 bg-gray-100 border border-gray-300 focus:outline-none focus:border-[#f6213f] p-2 rounded-md resize-none overflow-y-auto font-nunito font-medium"
-                rows={1}
-                disabled={isLoading}
-              />
-              <button disabled={isLoading} type="submit" className="w-12 flex items-center justify-center">
-                <div className="w-10 h-10 rounded-full bg-[#f6213f] hover:bg-[#d2102c] flex items-center justify-center mx-auto">
-                  <ArrowUp className="w-6 h-6 text-white" />
+          <div className="fixed bottom-0 left-0 md:left-16 right-0 p-4 bg-white border-t border-gray-200">
+            {showProfilePrompt && profileIsEmpty && !isLoading && conversation.some(message => Array.isArray(message?.bot?.message)) ? (
+              <div className="flex flex-col items-center space-y-2">
+                <p className="font-nunito font-medium text-center mb-2 text-gray-800">
+                  {getLocalizedText(userLanguage, "profilePromptBetterResults")}
+                </p>
+                <div className='flex gap-x-2'>
+                  <Button
+                    onClick={()=> setShowProfilePrompt(false)}
+                    className="bg-white border border-[#f6213f] text-[#f6213f] hover:bg-[#ffeaea] font-nunito font-medium"
+                  >
+                    {getLocalizedText(userLanguage, "dismissProfileRedirect")}
+                  </Button>
+              
+                  <Button
+                    onClick={handleProfileConfirmation}
+                    className="bg-[#f6213f] hover:bg-[#d2102c] text-white font-nunito font-medium"
+                  >
+                    {getLocalizedText(userLanguage, "confirmProfileRedirect")}
+                  </Button>
                 </div>
-              </button>
-            </form>
+              </div>
+            ) : showFeedbackForm ? (
+              <div className="flex flex-col items-center">
+                <p className="text-gray-800 mb-2 font-nunito font-medium">
+                  {getLocalizedText(userLanguage, "feedbackPrompt")}
+                </p>
+                <div className="flex space-x-1">
+                  {[1, 2, 3, 4, 5].map((value) => (
+                    <button
+                      key={value}
+                      onClick={() => handleStarClick(value)}
+                      className="focus:outline-none"
+                      type="button" // Added type="button" to prevent form submission
+                    >
+                      <Star
+                        className={cn(
+                          "w-8 h-8",
+                          value <= (starRating || 0) ? "text-yellow-500" : "text-gray-300"
+                        )}
+                      />
+                    </button>
+                  ))}
+                </div>
+                {showFeedbackPopup && (
+                  <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+                    <div className="bg-white p-6 rounded-md w-80">
+                      <p className="mb-4 font-nunito font-medium">
+                        {getLocalizedText(userLanguage, "feedbackPopupPrompt")}
+                      </p>
+                      <textarea
+                        value={writtenFeedback}
+                        onChange={(e) => setWrittenFeedback(e.target.value)}
+                        rows={4}
+                        className="w-full p-2 border border-gray-300 rounded-md font-nunito font-medium"
+                        placeholder={getLocalizedText(userLanguage, "feedbackPlaceholder")}
+                      />
+                      <div className="mt-4 flex justify-end space-x-2">
+                        <Button variant="outline" onClick={() => setShowFeedbackPopup(false)}>
+                          {getLocalizedText(userLanguage, "cancelFeedback")}
+                        </Button>
+                        <Button onClick={handleSubmitFeedback}>
+                          {getLocalizedText(userLanguage, "submitFeedback")}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <form
+                onSubmit={handleSubmit}
+                className={`flex flex-col gap-4 max-w-3xl mx-auto`}
+              >
+                {/* Suggestions Container */}
+                <div className="w-full flex flex-wrap justify-center gap-2">
+                  {(isWaitingFeedback && searchType && conversation.filter(message => message.bot && message.bot.message == "WAITING_FEEDBACK").length > 1) && (
+                    <button
+                      className="bg-white border border-[#f6213f] text-[#f6213f] hover:bg-[#ffeaea] transition-colors duration-200 font-nunito text-xs px-3 py-1 rounded-full shadow-sm flex items-center gap-2"
+                      onClick={async () => {
+                        setIsLoading(true);
+                        setTimeout(() => {
+                          scrollToBottom();
+                          undoLastChatMessages(currentChatId || '');
+                          setTimeout(() => {
+                            getChats().then(chats => {
+                              const updatedChat = chats.find((currentChat: { id: string | null; }) => currentChat.id === currentChatId);
+                              setConversation(updatedChat ? updatedChat.conversation : []);
+                              setIsLoading(false);
+                            });
+                          }, 500);
+                        }, 500);
+                      }}
+                    >
+                      <Undo size={16} />
+                      <span className="text-xs">{getLocalizedText(userLanguage, 'goBackResponse')}</span>
+                    </button>
+                  )}
+                  {(isWaitingFeedback && searchType && conversation.filter(message => message.bot && message.bot.message == "WAITING_FEEDBACK").length > 0) && (
+                    <button
+                    className="bg-[#f6213f] hover:bg-[#d2102c] text-white transition-colors duration-200 font-nunito text-xs px-3 py-1 rounded-full shadow-sm flex items-center gap-2"
+                      onClick={() => handleFeedbackSuggestionClick((() => {
+                        const text = getLocalizedText(userLanguage, searchType === "ABSTRACT" ? 'lovedItLook' : 'lovedItItem') || '';
+                        const keyword = searchType === "ABSTRACT" ? 'look...' : '';
+                        const regex = new RegExp(`(?:\\b\\w+\\b)\\s+${keyword}`, 'i');
+                        const match = text.match(regex);
+                        return match ? text.substring(0, match.index).trim() : text || getLocalizedText(userLanguage, 'lovedItItem');
+                      })())}
+                    >
+                      <ShoppingCart size={16} className="text-white" />
+                      <span className="text-xs">
+                        {(() => {
+                          const text = getLocalizedText(userLanguage, searchType === "ABSTRACT" ? 'lovedItLook' : 'lovedItItem') || '';
+                          const keyword = searchType === "ABSTRACT" ? 'look...' : 'item';
+                          const regex = new RegExp(`(?:\\b\\w+\\b)\\s+${keyword}`, 'i');
+                          const match = text.match(regex);
+                          return match ? text.substring(0, match.index).trim() : text || getLocalizedText(userLanguage, 'lovedItItem');
+                        })()}
+                      </span>
+                    </button>
+                  )}
+                  {(isWaitingFeedback && searchType) && feedbackSuggestionsKeys.map((suggestionText, index) => (
+                    <button
+                      key={index} // Using index as key since suggestions are static
+                      type="button" // Added type="button" to prevent form submission
+                      onClick={() => handleFeedbackSuggestionClick(conversation.filter(message => message.bot && Array.isArray(message.bot.message)).length == 1 ? getLocalizedText(userLanguage, suggestionText as keyof LocalizationStrings) : (() => {
+                        const text = getLocalizedText(userLanguage, suggestionText as keyof LocalizationStrings) || '';
+                        const keyword = searchType === "ABSTRACT" ? 'look...' : 'item';
+                        const regex = new RegExp(`(?:\\b\\w+\\b)\\s+${keyword}`, 'i');
+                        const match = text.match(regex);
+                        return (match
+                          ? text.substring(0, match.index).trim()
+                          : text || getLocalizedText(userLanguage, 'lovedItItem') || 'Fallback Text') + (((conversation.filter(message => message.bot && message.bot.message == "WAITING_FEEDBACK").length > 1) && (suggestionText != getLocalizedText(userLanguage, suggestionText as keyof LocalizationStrings))) ? "..." : "");
+                      })())}
+                      className="bg-gray-200 hover:bg-gray-300 text-gray-800 transition-colors duration-200 font-nunito text-xs px-3 py-1 rounded-full shadow-sm"
+                    >
+                      {conversation.filter(message => message.bot && Array.isArray(message.bot.message)).length == 1 ? getLocalizedText(userLanguage, suggestionText as keyof LocalizationStrings) : (() => {
+                        const text = getLocalizedText(userLanguage, suggestionText as keyof LocalizationStrings) || '';
+                        const keyword = searchType === "ABSTRACT" ? 'look...' : 'item';
+                        const regex = new RegExp(`(?:\\b\\w+\\b)\\s+${keyword}`, 'i');
+                        const match = text.match(regex);
+                        return (match
+                          ? text.substring(0, match.index).trim()
+                          : text || getLocalizedText(userLanguage, 'lovedItItem') || 'Fallback Text') + ((conversation.filter(message => message.bot && message.bot.message == "WAITING_FEEDBACK").length > 1 && (suggestionText != getLocalizedText(userLanguage, suggestionText as keyof LocalizationStrings))) ? "..." : "");
+                      })()}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Input Area Container */}
+                <div className="w-full flex flex-row gap-2">
+                  {/* Textarea */}
+                  <textarea
+                    onKeyDown={handleKeyDown}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder={getLocalizedText(userLanguage, 'describeItem')}
+                    className="flex-1 bg-gray-100 border border-gray-300 focus:outline-none focus:border-[#f6213f] p-2 rounded-md resize-none overflow-y-auto font-nunito font-medium"
+                    rows={1}
+                    disabled={isLoading}
+                  />
+
+                  {/* Submit Button */}
+                  <button
+                    disabled={isLoading}
+                    type="submit"
+                    className="w-12 flex-shrink-0 flex items-end justify-end"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-[#f6213f] hover:bg-[#d2102c] flex items-center justify-center">
+                      <ArrowUp className="w-6 h-6 text-white" />
+                    </div>
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         )}
       </div>
