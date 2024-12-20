@@ -531,7 +531,6 @@ export function FashionSearchChat() {
             const lastBotMessage = chat.conversation[lastBotMessageIndex].bot;
             if (lastBotMessage && lastBotMessage["in-progress"] == false) {
               setIsLoading(false);
-              scrollToBottom();
               if (botResponseCheckInterval.current) {
                 clearInterval(botResponseCheckInterval.current);
                 botResponseCheckInterval.current = null;
@@ -574,7 +573,7 @@ export function FashionSearchChat() {
 
             const newChat = await createChat(email, updatedConversation);
             setCurrentChatId(newChat.id);
-            updateChatMessages(newChat.id, updatedConversation, resultCheck.response);
+            updateChatMessages(newChat.id, updatedConversation, resultCheck.response, userLanguage);
             startBotResponseChecking(newChat.id);
             return;
           } else {
@@ -587,7 +586,7 @@ export function FashionSearchChat() {
             const newChat = await createChat(email, updatedConversation);
             setCurrentChatId(newChat.id);
             setTimeout(() => router.replace(`/?chat=${newChat.id}`), 10000);
-            updateChatMessages(newChat.id, updatedConversation, resultCheck.response);
+            updateChatMessages(newChat.id, updatedConversation, resultCheck.response, userLanguage);
             startBotResponseChecking(newChat.id);
             return;
           }
@@ -660,14 +659,14 @@ export function FashionSearchChat() {
           setSearchType(result.response);
 
           if (currentChatId) {
-            updateChatMessages(currentChatId, currentConversation, result.response);
+            updateChatMessages(currentChatId, currentConversation, result.response, userLanguage);
             startBotResponseChecking(currentChatId);
           } else {
             try {
               await signupUser(userData.email);
               const newChat = await createChat(userData.email, currentConversation);
               setCurrentChatId(newChat.id);
-              updateChatMessages(newChat.id, currentConversation, result.response);
+              updateChatMessages(newChat.id, currentConversation, result.response, userLanguage);
               startBotResponseChecking(newChat.id);
               router.replace(`/?chat=${newChat.id}`);
             } catch (error) {
@@ -796,6 +795,24 @@ export function FashionSearchChat() {
 
   // **Define lastBotMessage for consistency**
   const lastBotMessage = conversation[conversation.length - 1]?.bot;
+
+  // Helper function to process bot messages
+  const processBotMessage = (message: string) => {
+    // Remove the first and last newline characters (\n or \r\n)
+    const trimmedMessage = message.replace(/^(\r?\n)+|(\r?\n)+$/g, '');
+
+    // Split the message by remaining newline characters (\n or \r\n)
+    const lines = trimmedMessage.split(/\r?\n/);
+
+    // Map each line to a React fragment with a <br /> for line breaks
+    return lines.map((line, idx) => (
+      <React.Fragment key={idx}>
+        {line}
+        {idx < lines.length - 1 && <br />}
+      </React.Fragment>
+    ));
+  };
+
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen w-screen bg-gray-50 text-gray-900 overflow-hidden">
@@ -1062,83 +1079,88 @@ export function FashionSearchChat() {
               <div className="space-y-6 mt-16 md:mt-0 max-w-4xl mx-auto">
                 {conversation.map((message, i) => (
                   <div
-                    key={i}
-                    className={cn(
-                      "flex items-start gap-4",
-                      message.user ? "justify-end" : "justify-start"
-                    )}
-                  >
-                    {(message.user || 
-                      (message.bot && (
-                        (Array.isArray(message.bot.message) && message.bot.message.length > 0) ||
-                        (typeof message.bot.message === 'string' && message.bot.message.trim())
-                      ))
-                    ) && (
-                      <div
-                        className={cn(
-                          "rounded-lg bg-white shadow-sm overflow-wrap break-word",
-                          message.user
-                            ? "p-4 bg-[#f6213f]/30 text-gray-800 max-w-[80%] font-nunito font-medium"
-                            : ((message.bot && message.bot.message && (Array.isArray(message.bot.message) && message.bot.message.length > 0)) ? "max-w-[100%] font-nunito font-medium" : "p-4 max-w-[100%] font-nunito font-medium")
-                        )}
-                      >
-                        {message.user ? (
-                          <div>{message.user}</div>
-                        ) : message.bot && message.bot.message ? (
-                          Array.isArray(message.bot.message) && message.bot.message.length > 0 ? (
-                            <div className="space-y-8">
-                              {message.bot.message.map((item: BotMessage, idx: number) => {
-                                const totalPrice = item?.items?.filter(x => x.itemResults[0]?.product?.price).reduce((sum, current) => sum + Number(current?.itemResults[0]?.product?.price), 0);
-                                const formattedPrice = `R$${(totalPrice / 100).toFixed(2)}`;
-                                
-                                const hasResults = item?.items?.some(it => it.itemResults.length > 0);
-
-                                return (
-                                  <div key={idx} className="border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-                                    <div className="bg-[#f6213f] px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+                  key={i}
+                  className={cn(
+                    "flex items-start gap-4",
+                    message.user ? "justify-end" : "justify-start"
+                  )}
+                >
+                  {(message.user || 
+                    (message.bot && (
+                      (Array.isArray(message.bot.message) && message.bot.message.length > 0) ||
+                      (typeof message.bot.message === 'string' && message.bot.message.trim())
+                    ))
+                  ) && (
+                    <div
+                      className={cn(
+                        "rounded-lg bg-white shadow-sm overflow-wrap break-word",
+                        message.user
+                          ? "p-4 bg-[#f6213f]/30 text-gray-800 max-w-[80%] font-nunito font-medium"
+                          : ((message.bot && message.bot.message && (Array.isArray(message.bot.message) && message.bot.message.length > 0)) ? "max-w-[100%] font-nunito font-medium" : "p-4 max-w-[100%] font-nunito font-medium")
+                      )}
+                    >
+                      {message.user ? (
+                        <div>{message.user}</div>
+                      ) : message.bot && message.bot.message ? (
+                        Array.isArray(message.bot.message) && message.bot.message.length > 0 ? (
+                          <div className="space-y-8">
+                            {message.bot.message.map((item: BotMessage, idx: number) => {
+                              const totalPrice = item?.items?.filter(x => x.itemResults[0]?.product?.price).reduce((sum, current) => sum + Number(current?.itemResults[0]?.product?.price), 0);
+                              const formattedPrice = `R$${(totalPrice / 100).toFixed(2)}`;
+                              
+                              const hasResults = item?.items?.some(it => it.itemResults.length > 0);
+                
+                              return (
+                                <div key={idx} className="border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                                  <div className="bg-[#f6213f] px-4 py-3 border-b border-gray-200">
+                                    <div className="flex justify-between items-center">
                                       <h2 className="text-lg font-bold text-white flex items-center">
                                         {item.searchType === 'ABSTRACT' ? `Look ${idx + 1}: ${item.message} | ${formattedPrice}` : `${item.message}`}
                                       </h2>
                                     </div>
-                                    <div className="space-y-6">
-                                      {hasResults ? (
-                                        <ImprovedCarouselGrid items={item.items}/>
-                                      ) : (
-                                        !isLoading && (
-                                          <div className="bg-white rounded-lg font-nunito font-medium text-center p-4">
-                                            {getLocalizedText(userLanguage, "noResults")}
-                                          </div>
-                                        )
-                                      )}
-                                    </div>
+                                    <p className="text-sm text-white mt-0">
+                                      {item.explanation}
+                                    </p>
                                   </div>
-                                );
-                              })}
-                            </div>
-                          ) : typeof message.bot.message === 'string' && message.bot.message.trim() ? (
-                            // Check if message is "WAITING_FEEDBACK" or "BUY"
-                            message.bot.message === "WAITING_FEEDBACK" ? (
-                              <div className="bg-white rounded-lg font-nunito font-medium">
-                                {getLocalizedText(userLanguage, "waitingFeedback")}
-                              </div>
-                            ) : message.bot.message === "BUY" ? (
-                              <div className="bg-white rounded-lg font-nunito font-medium">
-                                {getLocalizedText(userLanguage, "waitingBuy")}
-                              </div>
-                            ) : (
-                              <div className="bg-white rounded-lg font-nunito font-medium">
-                                {message.bot.message}
-                              </div>
-                            )
-                          ) : !message.bot["in-progress"] && !isLoading ? (
+                                  <div className="space-y-6">
+                                    {hasResults ? (
+                                      <ImprovedCarouselGrid items={item.items}/>
+                                    ) : (
+                                      !isLoading && (
+                                        <div className="bg-white rounded-lg font-nunito font-medium text-center p-4">
+                                          {getLocalizedText(userLanguage, "noResults")}
+                                        </div>
+                                      )
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : typeof message.bot.message === 'string' && message.bot.message.trim() ? (
+                          // Check if message is "WAITING_FEEDBACK" or "BUY"
+                          message.bot.message === "WAITING_FEEDBACK" ? (
                             <div className="bg-white rounded-lg font-nunito font-medium">
-                              {getLocalizedText(userLanguage, "noResults")}
+                              {getLocalizedText(userLanguage, "waitingFeedback")}
                             </div>
-                          ) : null
-                        ) : null}
-                      </div>
-                    )}
-                  </div>                
+                          ) : message.bot.message === "BUY" ? (
+                            <div className="bg-white rounded-lg font-nunito font-medium">
+                              {getLocalizedText(userLanguage, "waitingBuy")}
+                            </div>
+                          ) : (
+                            <div className="bg-white rounded-lg font-nunito font-medium">
+                              {processBotMessage(message.bot.message)}
+                            </div>
+                          )
+                        ) : !message.bot["in-progress"] && !isLoading ? (
+                          <div className="bg-white rounded-lg font-nunito font-medium">
+                            {getLocalizedText(userLanguage, "noResults")}
+                          </div>
+                        ) : null
+                      ) : null}
+                    </div>
+                  )}
+                </div>                
                 ))}
                 {isLoading && (
                   <div className="flex items-center gap-4 justify-start p-4">
