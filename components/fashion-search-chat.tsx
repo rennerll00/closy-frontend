@@ -291,6 +291,7 @@ export function FashionSearchChat() {
   const [showFeedbackPopup, setShowFeedbackPopup] = useState(false);
   const [writtenFeedback, setWrittenFeedback] = useState('');
   const [showProfilePrompt, setShowProfilePrompt] = useState(false);
+  const [hasClosedProfilePrompt, setHasClosedProfilePrompt] = useState(false);
   const userLanguage = getUserLanguage(userData.country);
 
   // **Added State Variables**
@@ -489,10 +490,21 @@ export function FashionSearchChat() {
     }
   };
 
-  const handleNewChat = async () => {
+  const handleNewChat = () => {
     setCurrentChatId(null);
     setConversation([]);
-    router.push('/');
+    setInput('');
+    setIsLoading(false);
+    setShowFeedbackForm(false);
+    setStarRating(null);
+    setWrittenFeedback('');
+    setShowFeedbackPopup(false);
+    setShowProfilePrompt(false);
+  
+    const params = new URLSearchParams(window.location.search);
+    params.delete('chat');
+  
+    window.location.href = `/`;
   };
 
   const scrollToBottom = () => {
@@ -624,7 +636,7 @@ export function FashionSearchChat() {
         try {
           const newChat = await createChat(userData.email, updatedConversation);
           setCurrentChatId(newChat.id);
-          router.replace(`/?chat=${newChat.id}`);
+          setTimeout(() => router.replace(`/?chat=${newChat.id}`), 10000);
         } catch (error) {
           console.error('Error creating chat after example prompt:', error);
           const errorBotMessage: ConversationMessage = { bot: { "in-progress": false, "progress-message": "", message: "" } };
@@ -668,7 +680,7 @@ export function FashionSearchChat() {
               setCurrentChatId(newChat.id);
               updateChatMessages(newChat.id, currentConversation, result.response, userLanguage);
               startBotResponseChecking(newChat.id);
-              router.replace(`/?chat=${newChat.id}`);
+              setTimeout(() => router.replace(`/?chat=${newChat.id}`), 10000);
             } catch (error) {
               console.error('Error starting new chat:', error);
               const botMessage: ConversationMessage = { bot: { message: "", "in-progress": false } };
@@ -698,7 +710,7 @@ export function FashionSearchChat() {
         try {
           const newChat = await createChat(userData.email, currentConversation);
           setCurrentChatId(newChat.id);
-          router.replace(`/?chat=${newChat.id}`);
+          setTimeout(() => router.replace(`/?chat=${newChat.id}`), 10000);
 
           // Call followUpChat
           setTimeout(() => {
@@ -898,8 +910,8 @@ export function FashionSearchChat() {
                 key={conv.id}
                 onClick={() => {
                   setSidebarOpen(false);
+                  setTimeout(() => {window.location.reload()}, 10000);
                   router.push(`/?chat=${conv.id}`);
-                  setTimeout(() => {window.location.reload()}, 500);
                 }}
                 className={cn(
                   "w-full mb-1 rounded-lg transition-colors duration-200 focus:outline-none",
@@ -1188,14 +1200,14 @@ export function FashionSearchChat() {
 
         {conversation.length > 0 && (
           <div className="fixed bottom-0 left-0 md:left-16 right-0 p-4 bg-white border-t border-gray-200">
-            {showProfilePrompt && profileIsEmpty && !isLoading && conversation.some(message => Array.isArray(message?.bot?.message)) ? (
+            {showProfilePrompt && !hasClosedProfilePrompt && profileIsEmpty && !isLoading && conversation.some(message => Array.isArray(message?.bot?.message)) ? (
               <div className="flex flex-col items-center space-y-2">
                 <p className="font-nunito font-medium text-center mb-2 text-gray-800">
                   {getLocalizedText(userLanguage, "profilePromptBetterResults")}
                 </p>
                 <div className='flex gap-x-2'>
                   <Button
-                    onClick={()=> setShowProfilePrompt(false)}
+                    onClick={() => {setShowProfilePrompt(false); setHasClosedProfilePrompt(true);}}
                     className="bg-white border border-[#f6213f] text-[#f6213f] hover:bg-[#ffeaea] font-nunito font-medium"
                   >
                     {getLocalizedText(userLanguage, "dismissProfileRedirect")}
