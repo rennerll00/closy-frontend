@@ -42,6 +42,20 @@ interface ChatRecord {
   intervention?: boolean;
 }
 
+const choiceMapping: { [key: string]: string } = {
+  "GREETING": "SAUDAÇÃO",
+  "INVENTORY_LOOKUP": "CONSULTA_DE_ESTOQUE",
+  "INTENT_SUMMARY_VARIANTS": "RESUMO_DE_INTENÇÃO_VARIANTES",
+  "PRODUCT_MORE_IMAGES": "MAIS_IMAGENS_DO_PRODUTO",
+  "DELIVERY_PICKUP_OPTIONS": "OPÇÕES_DE_ENTREGA_OU_RETIRADA",
+  "PAYMENT_OPTIONS": "OPÇÕES_DE_PAGAMENTO",
+  "CONCLUSION": "CONCLUSÃO",
+  "HUMAN_INTERVENTION": "INTERVENÇÃO_HUMANA",
+  "ORDER_STATUS": "STATUS_DO_PEDIDO",
+  "UNKNOWN_OR_INNAPROPRIATE_OR_BROAD":"DESCONHECIDO_OU_INADEQUADO_OU_AMPLO"
+};
+
+
 /** Convert a conversation entry into simpler segments (text, image, or audio). */
 function parseEntryIntoSegments(entry: ConversationEntry) {
   const segments: {
@@ -49,6 +63,7 @@ function parseEntryIntoSegments(entry: ConversationEntry) {
     type: "text" | "image" | "audio";
     text?: string;
     imageUrl?: string;
+    choice?: string;
   }[] = [];
 
   if (entry.user) {
@@ -59,12 +74,13 @@ function parseEntryIntoSegments(entry: ConversationEntry) {
     }
   } else if (entry.bot?.message !== undefined) {
     const botMsg = entry.bot.message;
+    const choice = entry.bot.choice;
     if (typeof botMsg === "string") {
-      segments.push({ isUser: false, type: "text", text: botMsg });
+      segments.push({ isUser: false, type: "text", text: botMsg, choice });
     } else if (Array.isArray(botMsg)) {
       botMsg.forEach((item) => {
         if (typeof item === "string") {
-          segments.push({ isUser: false, type: "text", text: item });
+          segments.push({ isUser: false, type: "text", text: item, choice });
         } else if (item && typeof item === "object") {
           if (item.type === "image") {
             segments.push({
@@ -72,12 +88,14 @@ function parseEntryIntoSegments(entry: ConversationEntry) {
               type: "image",
               text: item.caption || "",
               imageUrl: item.imageUrl,
+              choice,
             });
           } else {
             segments.push({
               isUser: false,
               type: "text",
               text: JSON.stringify(item, null, 2),
+              choice,
             });
           }
         }
@@ -89,12 +107,14 @@ function parseEntryIntoSegments(entry: ConversationEntry) {
           type: "image",
           text: botMsg.caption || "",
           imageUrl: botMsg.imageUrl,
+          choice,
         });
       } else {
         segments.push({
           isUser: false,
           type: "text",
           text: JSON.stringify(botMsg, null, 2),
+          choice,
         });
       }
     }
@@ -481,70 +501,95 @@ export default function AdminPage() {
                 </div>
               )}
 
-              {!isLoading && activeChat ? (
-                activeChat.conversation.map((entry, i) => {
-                    const segs = parseEntryIntoSegments(entry);
-                    // Assume all segments in an entry belong to the same sender
-                    const isUser = segs[0]?.isUser;
-                    return (
-                      <React.Fragment key={i}>
-                        {segs.map((seg, sIdx) => {
-                          const wrapperClass = seg.isUser ? "flex justify-start" : "flex justify-end";
-                          const bubbleClass = seg.isUser
-                            ? "p-3 bg-white shadow-sm text-gray-800 max-w-[80%] rounded-lg"
-                            : "p-3 bg-[#f6213f]/30 text-gray-800 max-w-[80%] rounded-lg";
+                {!isLoading && activeChat ? (
+                  activeChat.conversation.map((entry, i) => {
+                  const segs = parseEntryIntoSegments(entry);
+                  // Assume all segments in an entry belong to the same sender
+                  const isUser = segs[0]?.isUser;
+                  return (
+                    <React.Fragment key={i}>
+                    {segs.map((seg, sIdx) => {
+                      const wrapperClass = seg.isUser ? "flex justify-start" : "flex justify-end";
+                      const bubbleClass = seg.isUser
+                      ? "p-3 bg-white shadow-sm text-gray-800 max-w-[80%] rounded-lg"
+                      : "p-3 bg-[#f6213f]/30 text-gray-800 max-w-[80%] rounded-lg";
 
-                          if (seg.type === "text") {
-                            return (
-                              <div key={`${i}-${sIdx}`} className={wrapperClass}>
-                                <div className={bubbleClass}>{seg.text}</div>
-                              </div>
-                            );
-                          } else if (seg.type === "image") {
-                            return (
-                              <div key={`${i}-${sIdx}`} className={wrapperClass}>
-                                <div className={bubbleClass}>
-                                  {seg.imageUrl && (
-                                    <div className="mb-2">
-                                      <img
-                                        src={seg.imageUrl}
-                                        alt="bot"
-                                        className="max-w-sm rounded-md"
-                                      />
-                                    </div>
-                                  )}
-                                  {seg.text}
-                                </div>
-                              </div>
-                            );
-                          } else if (seg.type === "audio") {
-                            return (
-                              <div key={`${i}-${sIdx}`} className={wrapperClass}>
-                                <div className={`${bubbleClass} italic`}>
-                                  <span className="flex items-center gap-1">
-                                    <Mic className="w-4 h-4" />
-                                    <q>{seg.text}</q>
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          }
-                          return null;
-                        })}
-                        {/* Render the timestamp if available */}
-                        {entry.timestamp && (
-                          <div className={`flex ${isUser ? "justify-start" : "justify-end"} mt-1`}>
-                            <small className="text-xs text-gray-500">
-                              {formatTimestamp(entry.timestamp)}
-                            </small>
+                      if (seg.type === "text") {
+                      return (
+                        <div key={`${i}-${sIdx}`} className={wrapperClass}>
+                        <div className={bubbleClass}>
+                          {!seg.isUser && seg.choice && (
+                          <div className="mb-1 text-right">
+                            <span className="text-xs font-semibold bg-red-300 text-red-900 rounded px-2 py-0.5">
+                            {choiceMapping[seg.choice] || seg.choice}
+                            </span>
                           </div>
-                        )}
-                      </React.Fragment>
-                    );
+                          )}
+                          {seg.text}
+                        </div>
+                        </div>
+                      );
+                      } else if (seg.type === "image") {
+                      return (
+                        <div key={`${i}-${sIdx}`} className={wrapperClass}>
+                        <div className={bubbleClass}>
+                          {!seg.isUser && seg.choice && (
+                          <div className="mb-1 text-right">
+                            <span className="text-xs font-semibold bg-red-300 text-red-900 rounded px-2 py-0.5">
+                            {choiceMapping[seg.choice] || seg.choice}
+                            </span>
+                          </div>
+                          )}
+                          {seg.imageUrl && (
+                          <div className="mb-2">
+                            <img
+                            src={seg.imageUrl}
+                            alt="bot"
+                            className="max-w-sm rounded-md"
+                            />
+                          </div>
+                          )}
+                          {seg.text}
+                        </div>
+                        </div>
+                      );
+                      } else if (seg.type === "audio") {
+                      return (
+                        <div key={`${i}-${sIdx}`} className={wrapperClass}>
+                        <div className={`${bubbleClass} italic`}>
+                          {!seg.isUser && seg.choice && (
+                          <div className="mb-1 text-right">
+                            <span className="text-xs font-semibold bg-red-300 text-red-900 rounded px-2 py-0.5">
+                            {choiceMapping[seg.choice] || seg.choice}
+                            </span>
+                          </div>
+                          )}
+                          <span className="flex items-center gap-1">
+                          <Mic className="w-4 h-4" />
+                          <q>
+                            {seg.text}
+                          </q>
+                          </span>
+                        </div>
+                        </div>
+                      );
+                      }
+                      return null;
+                    })}
+                    {/* Render the timestamp if available */}
+                    {entry.timestamp && (
+                      <div className={`flex ${isUser ? "justify-start" : "justify-end"} mt-1`}>
+                      <small className="text-xs text-gray-500">
+                        {formatTimestamp(entry.timestamp)}
+                      </small>
+                      </div>
+                    )}
+                    </React.Fragment>
+                  );
                   })
-              ) : (
-                !isLoading &&
-                phoneParam && (
+                ) : (
+                  !isLoading &&
+                  phoneParam && (
                   <div className="text-gray-400 italic">Select a user phone on the left</div>
                 )
               )}
