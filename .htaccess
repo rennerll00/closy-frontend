@@ -1,14 +1,8 @@
 # Enable Rewrite Engine
 RewriteEngine On
 
-# Route /home to home.html
-RewriteRule ^home$ /home.html [L]
-
-# Route /editProfile to editProfile.html
-RewriteRule ^editProfile$ /editProfile.html [L]
-
-# Route /main to main.html
-RewriteRule ^main$ /main.html [L]
+# Route /admin to admin.html
+RewriteRule ^admin$ /admin.html [L]
 
 # Fallback to index.html for all other routes
 RewriteCond %{REQUEST_FILENAME} !-f

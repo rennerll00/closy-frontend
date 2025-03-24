@@ -131,6 +131,9 @@ export type LocalizationStrings = {
 
   // go back
   goBackResponse: string;
+
+  // availableSize
+  availableSize: string;
 };
 
 export const localizations: Record<"english" | "brazilian_portuguese", LocalizationStrings> = {
@@ -232,7 +235,7 @@ export const localizations: Record<"english" | "brazilian_portuguese", Localizat
     profileQ5: "5. What is your shoe size (e.g., 7)?",
     profileQ6: "6. What is your usual shirt size?",
     profileQ7: "7. What is your usual pants size?",
-    profileQ8: "8. What is your address? Please provide postal code, city, state, and country.",
+    profileQ8: "8. What is your location? Please provide postal code, city, state, and country.",
     profileQ9: "9. Select your favorite brands:",
     profileAnswerPlaceholder: "Type your answer here...",
     profileSuccess: "Profile saved successfully! Redirecting...",
@@ -265,6 +268,9 @@ export const localizations: Record<"english" | "brazilian_portuguese", Localizat
 
     // go back
     goBackResponse: "Delete last message",
+
+    // availableSize
+    availableSize: "Disponível no seu tamanho"
   },
   brazilian_portuguese: {
     appName: "Closy AI",
@@ -364,7 +370,7 @@ export const localizations: Record<"english" | "brazilian_portuguese", Localizat
     profileQ5: "5. Qual é o seu número de calçado (ex.: 36)?",
     profileQ6: "6. Qual é o seu tamanho padrão de camisetas/camisas que costuma comprar?",
     profileQ7: "7. Qual é o seu tamanho padrão de calças que costuma comprar?",
-    profileQ8: "8. Qual é o seu endereço? Por favor, forneça código postal, cidade, estado e país.",
+    profileQ8: "8. Qual é a sua localização? Por favor, forneça código postal, cidade, estado e país.",
     profileQ9: "9. Selecione suas marcas preferidas:",
     profileAnswerPlaceholder: "Digite sua resposta aqui...",
     profileSuccess: "Perfil salvo com sucesso! Redirecionando...",
@@ -397,6 +403,9 @@ export const localizations: Record<"english" | "brazilian_portuguese", Localizat
 
     // go back
     goBackResponse: "Apagar última mensagem",
+
+    // availableSize
+    availableSize: "Disponível no seu tamanho"
   }  
 };
 
