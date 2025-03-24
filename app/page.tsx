@@ -177,13 +177,13 @@ export default function AdminPage() {
   // Handler to update state and URL when selecting a chat.
   const handleChatSelect = (uPhone: string) => {
     setUserPhoneParam(uPhone);
-    router.replace(`/admin?phone=${phoneParam}&user=${uPhone}`);
+    router.replace(`/?phone=${phoneParam}&user=${uPhone}`);
   };
 
   // Handler for mobile back arrow to clear the active chat.
   const handleBack = () => {
     setUserPhoneParam("");
-    router.replace(`/admin?phone=${phoneParam}`);
+    router.replace(`/?phone=${phoneParam}`);
   };
 
   const [chats, setChats] = useState<ChatRecord[]>([]);
@@ -493,7 +493,7 @@ export default function AdminPage() {
                           const bubbleClass = seg.isUser
                             ? "p-3 bg-white shadow-sm text-gray-800 max-w-[80%] rounded-lg"
                             : "p-3 bg-[#f6213f]/30 text-gray-800 max-w-[80%] rounded-lg";
-                  
+
                           if (seg.type === "text") {
                             return (
                               <div key={`${i}-${sIdx}`} className={wrapperClass}>
@@ -541,7 +541,7 @@ export default function AdminPage() {
                         )}
                       </React.Fragment>
                     );
-                  })                  
+                  })
               ) : (
                 !isLoading &&
                 phoneParam && (
