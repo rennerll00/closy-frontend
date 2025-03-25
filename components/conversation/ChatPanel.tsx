@@ -203,10 +203,10 @@ export default function ChatPanel({
             </div>
           </div>
         )}
-      </div>
+      </div> {/* end of messages area */}
 
       {/* MESSAGE INPUT */}
-      <div className="bg-[#202c33] p-3">
+      <div className="bg-[#202c33] p-3 flex-shrink-0">
         <form
           onSubmit={(e) => {
             e.preventDefault();

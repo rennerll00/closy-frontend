@@ -327,7 +327,7 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen w-screen bg-[#0b141a] text-[#e9edef]">
+    <div className="flex flex-col h-screen w-screen bg-[#0b141a] text-[#e9edef] overflow-hidden">
       {/* TOP NAV BAR */}
       <div className="relative text-center p-4 border-b border-[#222d34]">
         <Image

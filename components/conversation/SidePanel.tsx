@@ -159,6 +159,7 @@ export default function SidePanel({
                     </span>
                   )}
                 </div>
+                
               </div>
             );
           })
