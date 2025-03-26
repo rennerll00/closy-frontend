@@ -28,6 +28,7 @@ interface ChatRecord {
   recipient: string;
   conversation: ConversationEntry[];
   intervention?: boolean;
+  seller_name?: string;
 }
 
 interface SidePanelProps {
@@ -78,6 +79,15 @@ export default function SidePanel({
     })
     .filter(Boolean) as ChatRecord[];
 
+  // Sort chats: chats with intervention come first; then by last message timestamp descending.
+  searchedChats.sort((a, b) => {
+    if (a.intervention && !b.intervention) return -1;
+    if (!a.intervention && b.intervention) return 1;
+    const { lastTs: aTs } = getLastMessageInfo(a.conversation);
+    const { lastTs: bTs } = getLastMessageInfo(b.conversation);
+    return (bTs || 0) - (aTs || 0);
+  });
+
   return (
     <div className="flex h-full flex-col bg-[#111b21] border-r border-[#222d34]">
       {/* Header with search + open link button */}
@@ -122,9 +132,8 @@ export default function SidePanel({
             return (
               <div
                 key={chat.id}
-                className={`cursor-pointer transition-colors hover:bg-[#202c33] px-3 py-3 border-t border-[#222d34] ${
-                  userPhoneParam === chat.phone ? "bg-[#2a3942]" : ""
-                }`}
+                className={`cursor-pointer transition-colors hover:bg-[#202c33] px-3 py-3 border-t border-[#222d34] ${userPhoneParam === chat.phone ? "bg-[#2a3942]" : ""
+                  }`}
                 onClick={() => handleChatSelect(chat.phone)}
               >
                 <div className="flex items-start gap-3">
@@ -147,9 +156,16 @@ export default function SidePanel({
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-[#8696a0] truncate">
-                      {lastMsg || "Sem mensagens"}
-                    </p>
+                    <div className="flex items-center">
+                      <div className="mr-2 px-2 py-0.5 rounded-full text-xs text-white bg-gray-600">
+                        <p className="text-sm truncate">
+                          {chat.seller_name || "Vendedor"}
+                        </p>
+                      </div>
+                        <p className="text-sm text-[#8696a0] truncate">
+                          {lastMsg || "Sem mensagens"}
+                        </p>
+                    </div>
                   </div>
 
                   {/* Show "Interv." badge if chat.intervention is true */}
@@ -159,7 +175,7 @@ export default function SidePanel({
                     </span>
                   )}
                 </div>
-                
+
               </div>
             );
           })

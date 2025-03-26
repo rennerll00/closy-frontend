@@ -163,7 +163,7 @@ export default function ChatPanel({
                           {/* For bot messages, show choice badge if available */}
                           {!seg.isUser && seg.choice && (
                             <div className="mb-1 text-right">
-                              <span className="text-xs font-semibold bg-red-300 text-red-900 rounded px-2 py-0.5">
+                              <span className="text-xs font-semibold bg-green-300 text-black rounded px-2 py-0.5">
                                 {choiceMapping[seg.choice] || seg.choice}
                               </span>
                             </div>
