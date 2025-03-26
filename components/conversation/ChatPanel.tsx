@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import Image from "next/image";
 import {
   ArrowLeft,
@@ -70,6 +70,17 @@ export default function ChatPanel({
       chatEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [activeChat, isLoading]);
+
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleOpenEmojiPicker = () => {
+    textAreaRef.current?.focus();
+    if (navigator.userAgent.includes("Macintosh")) {
+      alert(`Aperte "Control" + "Command" + "Space" para abrir o seletor de emoji.`);
+    } else {
+      alert(`Aperte "Windows + "." para abrir o soletor de emoji`);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full bg-[#0a1014]">
@@ -214,13 +225,18 @@ export default function ChatPanel({
           }}
           className="flex items-center gap-2"
         >
-          <button type="button" className="rounded-full text-[#8696a0] hover:bg-[#374248] hover:text-[#e9edef] p-2">
+          <button
+            type="button"
+            onClick={handleOpenEmojiPicker}
+            className="rounded-full text-[#8696a0] hover:bg-[#374248] hover:text-[#e9edef] p-2"
+          >
             <Smile className="h-6 w-6" />
           </button>
           <button type="button" className="rounded-full text-[#8696a0] hover:bg-[#374248] hover:text-[#e9edef] p-2">
             <Paperclip className="h-6 w-6" />
           </button>
           <textarea
+            ref={textAreaRef}
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyDown={handleTextAreaKeyDown}
