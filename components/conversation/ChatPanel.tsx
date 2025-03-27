@@ -45,7 +45,6 @@ export default function ChatPanel({
   activeChat,
   isLoading,
   isMobile,
-  phoneParam,
   newMessage,
   setNewMessage,
   chatEndRef,
@@ -59,17 +58,16 @@ export default function ChatPanel({
   choiceMapping,
   getLastMessageInfo,
 }: ChatPanelProps) {
-  if (!activeChat) return null;
-
-  const activeLastTs = getLastMessageInfo(activeChat.conversation).lastTs;
-  const displayName = activeChat.phone || "Unknown";
-
-  // Scroll to bottom when messages change
   useEffect(() => {
     if (chatEndRef.current) {
       chatEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [activeChat, isLoading]);
+  
+  if (!activeChat) return null;
+  
+  const activeLastTs = getLastMessageInfo(activeChat.conversation).lastTs;
+  const displayName = activeChat.phone || "Unknown";
 
   return (
     <div className="flex flex-col h-full bg-[#0a1014]">

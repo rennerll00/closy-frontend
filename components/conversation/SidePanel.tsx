@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 
 interface BotMessage {
   choice?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   message: string | string[] | any;
   "in-progress": boolean;
   "progress-message"?: string;
