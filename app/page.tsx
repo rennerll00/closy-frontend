@@ -26,6 +26,9 @@ interface BotMessage {
   "progress-message"?: string;
   timestamp?: number;
   externalId?: string;
+  attachment?: string;
+  // New attachments field for image attachments from the backend
+  attachments?: { type: string; url: string; caption?: string }[];
 }
 
 export interface ConversationEntry {
@@ -34,6 +37,8 @@ export interface ConversationEntry {
   timestamp?: number;
   externalId?: string;
   bot?: BotMessage;
+  // Added optional image field to also support image messages from backend
+  image?: string;
 }
 
 export interface ChatRecord {
@@ -129,6 +134,32 @@ function parseEntryIntoSegments(entry: ConversationEntry) {
     }
   }
 
+  // Process image attachments if they exist
+  if (entry.bot?.attachments && Array.isArray(entry.bot.attachments)) {
+    entry.bot.attachments.forEach((att) => {
+      if (att.type === "image" && att.url) {
+        segments.push({
+          isUser: false,
+          type: "image",
+          imageUrl: att.url,
+          text: att.caption || "",
+          choice: entry.bot.choice,
+        });
+      }
+    });
+  }
+
+  // Also check if the entry has a top-level "image" field
+  if (entry.image) {
+    segments.push({
+      isUser: false,
+      type: "image",
+      imageUrl: entry.image,
+      text: "", // Or you could add caption text if available
+      choice: entry.bot?.choice,
+    });
+  }
+
   return segments;
 }
 
@@ -159,7 +190,7 @@ function formatTimestamp(ts: number) {
 function getLastMessageInfo(convo: ConversationEntry[]) {
   if (!convo || convo.length === 0) return { lastMsg: "", lastTs: 0 };
 
-  const last = convo.filter((entry) => entry.user).pop();
+  const last = convo.filter((entry) => entry?.user).pop();
   let raw = "";
   const ts = last?.timestamp || 0;
 
@@ -329,6 +360,59 @@ export default function AdminPage() {
     window.open(link, "_blank");
   };
 
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageCaption, setImageCaption] = useState("");
+
+  const handleOpenImageModal = () => {
+    setImageModalOpen(true);
+  };
+
+  const handleCloseImageModal = () => {
+    setImageModalOpen(false);
+    setImageFile(null);
+    setImageCaption("");
+  };
+
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setImageFile(e.target.files[0]);
+    }
+  };
+
+  const handleSendImageMessage = async () => {
+    if (!activeChat || !imageFile) return;
+    // Convert file to base64 (for example purposes)
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64Image = reader.result;
+      try {
+        await sendDirectMessage(phoneParam, userPhoneParam, imageCaption, base64Image as string);
+        // Append the image message locally
+        const appended = {
+          bot: {
+            choice: "HUMAN_INTERVENTION",
+            // here we reuse message field to hold caption if needed
+            message: imageCaption,
+            "in-progress": false,
+          },
+          timestamp: Date.now(),
+          // optionally add a field to indicate imageUrl
+          image: base64Image,
+        };
+        const updatedChat = {
+          ...activeChat,
+          conversation: [...activeChat.conversation, appended],
+        };
+        setChats((prev) => prev.map((c) => (c.id === activeChat.id ? updatedChat : c)));
+      } catch (err) {
+        console.error("Failed to send image message:", err);
+      }
+      handleCloseImageModal();
+    };
+    reader.readAsDataURL(imageFile);
+  };
+
   return (
     <div className="flex flex-col h-screen w-screen bg-[#0b141a] text-[#e9edef] overflow-hidden">
       {/* TOP NAV BAR */}
@@ -348,7 +432,7 @@ export default function AdminPage() {
       <div className="flex-1 flex overflow-hidden">
         {/* LEFT PANEL */}
         {showLeftPanel && (
-          <div className="w-[350px] flex-shrink-0 border-r border-[#222d34] bg-[#111b21] flex flex-col">
+          <div className={`${isMobile && !activeChat ? "w-full" : "w-[350px]"} flex-shrink-0 border-r border-[#222d34] bg-[#111b21] flex flex-col`}>
             <SidePanel
               showLeftPanel={showLeftPanel}
               handleOpenStoreLink={handleOpenStoreLink}
@@ -384,12 +468,43 @@ export default function AdminPage() {
                 formatTimestamp={formatTimestamp}
                 choiceMapping={choiceMapping}
                 getLastMessageInfo={getLastMessageInfo}
+                handleOpenImageModal={handleOpenImageModal}
               />
             ) : (
               <div className="flex items-center justify-center h-full text-[#8696a0]">
                 No chat selected
               </div>
             )}
+          </div>
+        )}
+        {/* IMAGE MODAL */}
+        {imageModalOpen && (
+          <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+            <div className="bg-[#0b141a] p-4 rounded-md w-80">
+              <h2 className="mb-2 text-lg">Enviar Imagem</h2>
+              <input type="file" accept="image/*" onChange={handleImageFileChange} />
+              <textarea
+                value={imageCaption}
+                onChange={(e) => setImageCaption(e.target.value)}
+                placeholder="Digite uma legenda (opcional)"
+                className="w-full mt-2 p-2 bg-[#2a3942] border-none rounded-md text-white"
+              />
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  onClick={handleCloseImageModal}
+                  className="px-3 py-1 bg-gray-500 rounded-md"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSendImageMessage}
+                  className="px-3 py-1 bg-[#00a884] rounded-md"
+                  disabled={!imageFile}
+                >
+                  Enviar
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
