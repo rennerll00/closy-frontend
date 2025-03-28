@@ -135,28 +135,28 @@ function parseEntryIntoSegments(entry: ConversationEntry) {
   }
 
   // Process image attachments if they exist
-  if (entry.bot?.attachments && Array.isArray(entry.bot.attachments)) {
-    entry.bot.attachments.forEach((att) => {
+  if (entry?.bot?.attachments && Array.isArray(entry?.bot.attachments)) {
+    entry?.bot.attachments.forEach((att) => {
       if (att.type === "image" && att.url) {
         segments.push({
           isUser: false,
           type: "image",
           imageUrl: att.url,
           text: att.caption || "",
-          choice: entry.bot.choice,
+          choice: entry?.bot.choice,
         });
       }
     });
   }
 
   // Also check if the entry has a top-level "image" field
-  if (entry.image) {
+  if (entry?.image) {
     segments.push({
       isUser: false,
       type: "image",
-      imageUrl: entry.image,
+      imageUrl: entry?.image,
       text: "", // Or you could add caption text if available
-      choice: entry.bot?.choice,
+      choice: entry?.bot?.choice,
     });
   }
 

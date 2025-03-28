@@ -67,12 +67,12 @@ export default function ChatPanel({
     }
   }, [activeChat, isLoading]);
 
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
+
   if (!activeChat) return null;
 
   const activeLastTs = getLastMessageInfo(activeChat.conversation).lastTs;
   const displayName = activeChat.phone || "Unknown";
-
-  const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleOpenEmojiPicker = () => {
     textAreaRef.current?.focus();
