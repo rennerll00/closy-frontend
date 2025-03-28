@@ -191,14 +191,24 @@ function formatTimestamp(ts: number) {
 function getLastMessageInfo(convo: ConversationEntry[]) {
   if (!convo || convo.length === 0) return { lastMsg: "", lastTs: 0 };
 
-  const last = convo.filter((entry) => entry?.user || entry?.bot).pop();
-  let raw = "";
-  const ts = last?.timestamp || 0;
+  // Find the last entry with a valid timestamp by iterating backwards
+  let lastEntry = null;
+  for (let i = convo.length - 1; i >= 0; i--) {
+    if ((convo[i]?.user || convo[i]?.bot) && convo[i].timestamp) {
+      lastEntry = convo[i];
+      break;
+    }
+  }
+  if (!lastEntry) {
+    lastEntry = convo.filter((entry) => entry?.user || entry?.bot).pop();
+  }
 
-  if (last?.user) {
-    raw = last.user;
-  } else if (last?.bot?.message) {
-    const b = last.bot.message;
+  let raw = "";
+  const ts = lastEntry?.timestamp || 0;
+  if (lastEntry?.user) {
+    raw = lastEntry.user;
+  } else if (lastEntry?.bot?.message) {
+    const b = lastEntry.bot.message;
     if (typeof b === "string") {
       raw = b;
     } else if (Array.isArray(b) && b.length > 0) {
@@ -216,7 +226,6 @@ function getLastMessageInfo(convo: ConversationEntry[]) {
       raw = "[object]";
     }
   }
-
   const truncated = raw.length > 25 ? raw.slice(0, 25) + "…" : raw;
   return { lastMsg: truncated, lastTs: ts };
 }
