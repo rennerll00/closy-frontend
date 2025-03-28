@@ -183,9 +183,9 @@ export default function ChatPanel({
                       </div>
                     );
                   })}
-                  {entry.timestamp && (
-                    <div className={`flex ${entry.user ? "justify-start" : "justify-end"} mb-3`}>
-                      <span className="text-xs text-[#8696a0]">{formatTimestamp(entry.timestamp)}</span>
+                  {entry?.timestamp && (
+                    <div className={`flex ${entry?.user ? "justify-start" : "justify-end"} mb-3`}>
+                      <span className="text-xs text-[#8696a0]">{formatTimestamp(entry?.timestamp)}</span>
                     </div>
                   )}
                 </React.Fragment>

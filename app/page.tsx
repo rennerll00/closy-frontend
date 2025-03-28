@@ -73,17 +73,17 @@ function parseEntryIntoSegments(entry: ConversationEntry) {
     choice?: string;
   }[] = [];
 
-  if (entry.user) {
+  if (entry?.user) {
     // user entry
-    if (entry.type === "audio") {
-      segments.push({ isUser: true, type: "audio", text: entry.user });
+    if (entry?.type === "audio") {
+      segments.push({ isUser: true, type: "audio", text: entry?.user });
     } else {
-      segments.push({ isUser: true, type: "text", text: entry.user });
+      segments.push({ isUser: true, type: "text", text: entry?.user });
     }
-  } else if (entry.bot?.message !== undefined) {
+  } else if (entry?.bot?.message !== undefined) {
     // bot entry
-    const botMsg = entry.bot.message;
-    const choice = entry.bot.choice;
+    const botMsg = entry?.bot?.message;
+    const choice = entry?.bot?.choice;
     if (typeof botMsg === "string") {
       segments.push({ isUser: false, type: "text", text: botMsg, choice });
     } else if (Array.isArray(botMsg)) {
@@ -159,7 +159,7 @@ function formatTimestamp(ts: number) {
 function getLastMessageInfo(convo: ConversationEntry[]) {
   if (!convo || convo.length === 0) return { lastMsg: "", lastTs: 0 };
 
-  const last = convo.filter((entry) => entry.user).pop();
+  const last = convo.filter((entry) => entry?.user || entry?.bot).pop();
   let raw = "";
   const ts = last?.timestamp || 0;
 
