@@ -75,6 +75,7 @@ function parseEntryIntoSegments(entry: ConversationEntry) {
     type: "text" | "image" | "audio";
     text?: string;
     imageUrl?: string;
+    caption?: string;
     choice?: string;
   }[] = [];
 
@@ -143,7 +144,7 @@ function parseEntryIntoSegments(entry: ConversationEntry) {
           type: "image",
           imageUrl: att.url,
           text: att.caption || "",
-          choice: entry?.bot.choice,
+          choice: entry?.bot?.choice || "UNKNOWN",
         });
       }
     });
@@ -390,15 +391,15 @@ export default function AdminPage() {
         await sendDirectMessage(phoneParam, userPhoneParam, imageCaption, base64Image as string);
         // Append the image message locally
         const appended = {
-          bot: {
-            choice: "HUMAN_INTERVENTION",
-            // here we reuse message field to hold caption if needed
-            message: imageCaption,
-            "in-progress": false,
-          },
-          timestamp: Date.now(),
-          // optionally add a field to indicate imageUrl
-          image: base64Image,
+            bot: {
+              choice: "HUMAN_INTERVENTION",
+              // here we reuse message field to hold caption if needed
+              message: imageCaption,
+              "in-progress": false,
+            },
+            timestamp: Date.now(),
+            // optionally add a field to indicate imageUrl
+            image: typeof base64Image === "string" ? base64Image : "",
         };
         const updatedChat = {
           ...activeChat,

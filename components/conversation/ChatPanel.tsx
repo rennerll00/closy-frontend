@@ -35,6 +35,7 @@ interface ChatPanelProps {
     type: "text" | "image" | "audio";
     text?: string;
     imageUrl?: string;
+    caption?: string;
     choice?: string;
   }[];
   formatTimestamp: (ts: number) => string;
