@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import type { ConversationEntry, ChatRecord } from "@/app/page";
 
+// Extend props to include handleOpenImageModal
 interface ChatPanelProps {
   activeChat: ChatRecord | undefined;
   isLoading: boolean;
@@ -39,6 +40,7 @@ interface ChatPanelProps {
   formatTimestamp: (ts: number) => string;
   choiceMapping: { [key: string]: string };
   getLastMessageInfo: (conversation: ConversationEntry[]) => { lastMsg: string; lastTs: number };
+  handleOpenImageModal: () => void;
 }
 
 export default function ChatPanel({
@@ -57,15 +59,16 @@ export default function ChatPanel({
   formatTimestamp,
   choiceMapping,
   getLastMessageInfo,
+  handleOpenImageModal,
 }: ChatPanelProps) {
   useEffect(() => {
     if (chatEndRef.current) {
       chatEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [activeChat, isLoading]);
-  
+
   if (!activeChat) return null;
-  
+
   const activeLastTs = getLastMessageInfo(activeChat.conversation).lastTs;
   const displayName = activeChat.phone || "Unknown";
 
@@ -76,7 +79,7 @@ export default function ChatPanel({
     if (navigator.userAgent.includes("Macintosh")) {
       alert(`Aperte "Control" + "Command" + "Space" para abrir o seletor de emoji.`);
     } else {
-      alert(`Aperte "Windows + "." para abrir o soletor de emoji`);
+      alert(`Aperte "Windows + ." para abrir o soletor de emoji`);
     }
   };
 
@@ -143,7 +146,7 @@ export default function ChatPanel({
       <div
         className="flex-1 overflow-y-auto p-4 bg-[#0b141a]"
         style={{
-          backgroundImage: `linear-gradient(rgba(11,20,26,0.95), rgba(11,20,26,0.95)), url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAHlSURBVEhL1ZVLTsJQFIY7UVceQUfOHOjEmRrjI8wzcKLGGVvjI2jUmQuNE6cugiUkJG7AuAQSFmDCBvgv95YWWlraJiZ+yZf0nvPfc8/j3hZKpdJrLpebxjHsIBZPUXIqivIGUifzeDzuTKfTR9i+x2w2+4L9V9yu1+td+Jp5AzKIlUqlDWYqlUoVnHpgmmb1T/lC0u12d5Dx6Ha7PaAzGo0GiqLMqX80GpmiKC6pj1wul7Tb7UPaJ3KABrTwXvmTRntCURQdZB2SgcCrY0JtpkJtoIMvGHMEZl+qqp4yF2o2m/vMBWSz2QNs38Yymrq+2bZtMReSyWR2cIOHXBbRtu0GcyGqqm6C/JbLIpqmeWUuhB6wZLPZXS6LCPcvmQtJp9MbID/nsogwccVcCPxXQX7NZRHB/oK5EPivgPyKyyJC0Aq8ahRF2YL/MpdFhCeqMBcC8k2Qn3FZRHjeY+ZCEomEBvIDLotIjfbEXAjI10G+z2URIegVcyGxWGwN5HtcFnE4HFbpuZkLicfjqyDf5bKIELTMXEgkElkB+Q6XRRwMBiXmQsLh8DLIt7ksIgSVmQsJhUJLIN/gsoj9fr/AXEgwGFwE+TqXRYSJBeZCAoHAAsir1WqVuRCfz+fHDVZ+AZVKhX59fwBGK/MV2/QkfAAAAABJRU5ErkJggg==")`,
+          backgroundImage: `linear-gradient(rgba(11,20,26,0.95), rgba(11,20,26,0.95)), url("data:image/png;base64,...")`,
         }}
       >
         {isLoading ? (
@@ -153,47 +156,40 @@ export default function ChatPanel({
         ) : activeChat.conversation.length > 0 ? (
           <div>
             {activeChat.conversation.map((entry, i) => {
+              // Changed section: combine segments into one bubble
               const segs = parseEntryIntoSegments(entry);
+              const isUser = segs.length > 0 ? segs[0].isUser : false;
+              const choice = segs.find(seg => seg.choice)?.choice;
+              const combinedText = segs
+                .filter(seg => seg.type === "text" && seg.text)
+                .map(seg => seg.text)
+                .join("\n");
+              const images = segs.filter(seg => seg.type === "image" && seg.imageUrl);
               return (
                 <React.Fragment key={i}>
-                  {segs.map((seg, sIdx) => {
-                    // If seg.isUser is true, it's a user message, so align left;
-                    // if false (bot message), align right.
-                    const bubbleWrapper = seg.isUser
-                      ? "flex justify-start mb-1"
-                      : "flex justify-end mb-1";
-                    const bubbleClasses = seg.isUser
-                      ? "max-w-[70%] bg-[#202c33] text-white px-3 py-2 rounded-lg shadow-sm"
-                      : "max-w-[70%] bg-[#005c4b] text-white px-3 py-2 rounded-lg shadow-sm";
-
-                    return (
-                      <div className={bubbleWrapper} key={`${i}-${sIdx}`}>
-                        <div className={bubbleClasses}>
-                          {/* For bot messages, show choice badge if available */}
-                          {!seg.isUser && seg.choice && (
-                            <div className="mb-1 text-right">
-                              <span className="text-xs font-semibold bg-green-300 text-black rounded px-2 py-0.5">
-                                {choiceMapping[seg.choice] || seg.choice}
-                              </span>
-                            </div>
-                          )}
-                          {seg.type === "image" && seg.imageUrl ? (
-                            <div className="mb-2">
-                              <img src={seg.imageUrl} alt="bot" className="max-w-sm rounded-md" />
-                            </div>
-                          ) : null}
-                          {seg.type === "audio" ? (
-                            <div className="flex items-center gap-1 italic">
-                              <Mic className="w-4 h-4" />
-                              <q>{seg.text}</q>
-                            </div>
-                          ) : (
-                            <p className="whitespace-pre-wrap break-words">{seg.text}</p>
-                          )}
+                  <div className={isUser ? "flex justify-start mb-1" : "flex justify-end mb-1"}>
+                    <div className={isUser ? "max-w-[70%] bg-[#202c33] text-white px-3 py-2 rounded-lg shadow-sm" : "max-w-[70%] bg-[#005c4b] text-white px-3 py-2 rounded-lg shadow-sm"}>
+                      { !isUser && choice && (
+                        <div className="mb-1 text-right">
+                          <span className="text-xs font-semibold bg-green-300 text-black rounded px-2 py-0.5">
+                            {choiceMapping[choice] || choice}
+                          </span>
                         </div>
-                      </div>
-                    );
-                  })}
+                      )}
+                      {combinedText && (
+                        <p className="whitespace-pre-wrap break-words mb-2">{combinedText}</p>
+                      )}
+                      {images.length > 0 &&
+                        images.map((img, idx) => (
+                          <div className="mb-2" key={idx}>
+                            <img src={img.imageUrl} alt={img.caption || "bot"} className="max-w-sm rounded-md" />
+                            {img.caption && (
+                              <p className="mt-1 text-sm">{img.caption}</p>
+                            )}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
                   {entry?.timestamp && (
                     <div className={`flex ${entry?.user ? "justify-start" : "justify-end"} mb-3`}>
                       <span className="text-xs text-[#8696a0]">{formatTimestamp(entry?.timestamp)}</span>
@@ -212,7 +208,7 @@ export default function ChatPanel({
             </div>
           </div>
         )}
-      </div> {/* end of messages area */}
+      </div>
 
       {/* MESSAGE INPUT */}
       <div className="bg-[#202c33] p-3 flex-shrink-0">
@@ -230,7 +226,11 @@ export default function ChatPanel({
           >
             <Smile className="h-6 w-6" />
           </button>
-          <button type="button" className="rounded-full text-[#8696a0] hover:bg-[#374248] hover:text-[#e9edef] p-2">
+          <button
+            type="button"
+            onClick={handleOpenImageModal} // Updated to open image modal.
+            className="rounded-full text-[#8696a0] hover:bg-[#374248] hover:text-[#e9edef] p-2"
+          >
             <Paperclip className="h-6 w-6" />
           </button>
           <textarea
