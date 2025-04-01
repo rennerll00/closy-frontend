@@ -356,6 +356,10 @@ export default function AdminPage() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Theme state and toggle
+  const [isLightTheme, setIsLightTheme] = useState(true); // changed default to true
+  const toggleTheme = () => setIsLightTheme((prev) => !prev);
+
   const showLeftPanel = !isMobile || !activeChat;
   const showRightPanel = !isMobile || !!activeChat;
 
@@ -425,14 +429,14 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-[#0b141a] text-[#e9edef] overflow-hidden">
-      {/* TOP NAV BAR */}
-      <div className="relative text-center p-4 border-b border-[#222d34]">
+    <div className={`${isLightTheme ? "bg-gray-50 text-black" : "bg-[#0b141a] text-[#e9edef]"} flex flex-col h-screen w-screen overflow-hidden`}>
+      {/* TOP NAV BAR (always dark) */}
+      <div className="relative text-center p-4 border-b border-[#222d34] bg-[#202c33] text-white">
         <Image
           src="/images/logo.png"
           alt="Logo"
-          width={80}
-          height={20}
+          width={100}
+          height={40}
           className="mx-auto cursor-pointer object-contain"
           onClick={() => router.replace("/")}
           unoptimized
@@ -443,7 +447,7 @@ export default function AdminPage() {
       <div className="flex-1 flex overflow-hidden">
         {/* LEFT PANEL */}
         {showLeftPanel && (
-          <div className={`${isMobile && !activeChat ? "w-full" : "w-[350px]"} flex-shrink-0 border-r border-[#222d34] bg-[#111b21] flex flex-col`}>
+          <div className={`${isMobile && !activeChat ? "w-full" : "w-[350px]"} flex-shrink-0 border-r ${isLightTheme ? "border-gray-300 bg-gray-100" : "border-[#222d34] bg-[#111b21]"} flex flex-col`}>
             <SidePanel
               showLeftPanel={showLeftPanel}
               handleOpenStoreLink={handleOpenStoreLink}
@@ -454,6 +458,8 @@ export default function AdminPage() {
               handleChatSelect={handleChatSelect}
               getLastMessageInfo={getLastMessageInfo}
               formatTimestamp={formatTimestamp}
+              isLightTheme={isLightTheme}
+              toggleTheme={toggleTheme}
             />
           </div>
         )}
@@ -480,6 +486,7 @@ export default function AdminPage() {
                 choiceMapping={choiceMapping}
                 getLastMessageInfo={getLastMessageInfo}
                 handleOpenImageModal={handleOpenImageModal}
+                isLightTheme={isLightTheme}
               />
             ) : (
               <div className="flex items-center justify-center h-full text-[#8696a0]">

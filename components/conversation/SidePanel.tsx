@@ -42,6 +42,8 @@ interface SidePanelProps {
   handleChatSelect: (uPhone: string) => void;
   getLastMessageInfo: (convo: ConversationEntry[]) => { lastMsg: string; lastTs: number };
   formatTimestamp: (ts: number) => string;
+  isLightTheme: boolean;
+  toggleTheme: () => void;
 }
 
 export default function SidePanel({
@@ -54,6 +56,8 @@ export default function SidePanel({
   handleChatSelect,
   getLastMessageInfo,
   formatTimestamp,
+  isLightTheme,
+  toggleTheme,
 }: SidePanelProps) {
   // Local state for searching by phone or last message
   const [searchQuery, setSearchQuery] = useState("");
@@ -90,29 +94,35 @@ export default function SidePanel({
   });
 
   return (
-    <div className="flex h-full flex-col bg-[#111b21] border-r border-[#222d34]">
-      {/* Header with search + open link button */}
-      <div className="p-2 bg-[#202c33]">
+    <div className={`${isLightTheme ? "bg-white border-r border-gray-300" : "bg-[#111b21] border-r border-[#222d34]"} flex h-full flex-col`}>
+      {/* Header with search + open link button + theme toggle */}
+      <div className={`${isLightTheme ? "bg-gray-100" : "bg-[#202c33]"} p-2`}>
         {/* Search Bar */}
         <div className="relative mb-2">
           <div className="absolute inset-y-0 left-0 flex items-center pl-3">
-            <Search className="h-4 w-4 text-[#8696a0]" />
+            <Search className={`${isLightTheme ? "text-gray-600" : "text-[#8696a0]"} h-4 w-4`} />
           </div>
           <input
             placeholder="Busque por nome ou mensagem"
-            className="w-full bg-[#202c33] border-none pl-10 py-2 text-[#d1d7db] placeholder-[#8696a0] focus-visible:ring-0 focus-visible:ring-offset-0 rounded-lg"
+            className={`${isLightTheme ? "bg-gray-100 text-black placeholder-gray-500" : "bg-[#202c33] text-[#d1d7db] placeholder-[#8696a0]"} w-full border-none pl-10 py-2 rounded-lg`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
 
-        {/* "Abrir link" button */}
         <div className="flex justify-between items-center">
           <button
             onClick={handleOpenStoreLink}
-            className="text-sm text-[#8696a0] hover:bg-[#374248] hover:text-[#e9edef] px-3 py-1 rounded-md"
+            className={`${isLightTheme ? "text-sm text-black hover:bg-gray-200" : "text-sm text-[#8696a0] hover:bg-[#374248]"} hover:text-[#e9edef] px-3 py-1 rounded-md`}
           >
             Abrir link
+          </button>
+          {/* Theme toggle button */}
+          <button
+            onClick={toggleTheme}
+            className={`${isLightTheme ? "bg-gray-300 text-black" : "bg-[#374248] text-[#e9edef]"} px-3 py-1 rounded-md text-sm`}
+          >
+            {isLightTheme ? "Dark Theme" : "Light Theme"}
           </button>
         </div>
       </div>
@@ -122,7 +132,7 @@ export default function SidePanel({
         {isLoading ? (
           // Show loader if fetching data
           <div className="flex items-center justify-center p-4">
-            <Loader2 className="h-8 w-8 animate-spin text-[#00a884]" />
+            <Loader2 className={`${isLightTheme ? "text-gray-600" : "text-[#00a884]"} h-8 w-8 animate-spin`} />
           </div>
         ) : searchedChats.length > 0 ? (
           searchedChats.map((chat) => {
@@ -133,7 +143,7 @@ export default function SidePanel({
             return (
               <div
                 key={chat.id}
-                className={`cursor-pointer transition-colors hover:bg-[#202c33] px-3 py-3 border-t border-[#222d34] ${userPhoneParam === chat.phone ? "bg-[#2a3942]" : ""
+                className={`cursor-pointer transition-colors hover:${isLightTheme ? "bg-gray-200" : "bg-[#202c33]"} px-3 py-3 border-t ${isLightTheme ? "border-gray-300" : "border-[#222d34]"} ${userPhoneParam === chat.phone ? (isLightTheme ? "bg-gray-300" : "bg-[#2a3942]") : ""
                   }`}
                 onClick={() => handleChatSelect(chat.phone)}
               >
@@ -148,11 +158,11 @@ export default function SidePanel({
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-medium text-[#e9edef] truncate">
+                      <h3 className={`${isLightTheme ? "text-black" : "text-[#e9edef]"} font-medium truncate`}>
                         {displayName}
                       </h3>
                       {timeLabel && (
-                        <span className="text-xs text-[#8696a0] ml-2">
+                        <span className={`${isLightTheme ? "text-gray-500" : "text-[#8696a0]"} text-xs ml-2`}>
                           {timeLabel}
                         </span>
                       )}
@@ -163,26 +173,25 @@ export default function SidePanel({
                           {chat.seller_name || "Vendedor"}
                         </p>
                       </div>
-                        <p className="text-sm text-[#8696a0] truncate">
-                          {lastMsg || "Sem mensagens"}
-                        </p>
+                      <p className={`${isLightTheme ? "text-gray-500" : "text-[#8696a0]"} text-sm truncate`}>
+                        {lastMsg || "Sem mensagens"}
+                      </p>
                     </div>
                   </div>
 
                   {/* Show "Interv." badge if chat.intervention is true */}
                   {chat.intervention && (
-                    <span className="ml-2 text-xs bg-[#f6213f] text-white px-2 py-1 rounded">
+                    <span className={`${isLightTheme ? "bg-red-500" : "bg-[#f6213f]"} text-white text-xs px-2 py-1 rounded ml-2`}>
                       Interv.
                     </span>
                   )}
                 </div>
-
               </div>
             );
           })
         ) : (
           <div className="flex h-full items-center justify-center p-4">
-            <p className="text-center text-[#8696a0]">No conversations found</p>
+            <p className={`${isLightTheme ? "text-gray-600" : "text-[#8696a0]"} text-center`}>No conversations found</p>
           </div>
         )}
       </div>

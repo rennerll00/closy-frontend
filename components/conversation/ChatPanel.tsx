@@ -6,15 +6,15 @@ import {
   ArrowLeft,
   ArrowUp,
   Sparkles,
-  Mic,
+  // Mic,
   RefreshCw,
   Paperclip,
   Smile,
-  Image as ImageIcon,
+  // Image as ImageIcon,
 } from "lucide-react";
 import type { ConversationEntry, ChatRecord } from "@/app/page";
 
-// Extend props to include handleOpenImageModal
+// Extend props to include isLightTheme
 interface ChatPanelProps {
   activeChat: ChatRecord | undefined;
   isLoading: boolean;
@@ -42,12 +42,14 @@ interface ChatPanelProps {
   choiceMapping: { [key: string]: string };
   getLastMessageInfo: (conversation: ConversationEntry[]) => { lastMsg: string; lastTs: number };
   handleOpenImageModal: () => void;
+  isLightTheme: boolean; // New prop for theme
 }
 
 export default function ChatPanel({
   activeChat,
   isLoading,
   isMobile,
+  // phoneParam,
   newMessage,
   setNewMessage,
   chatEndRef,
@@ -61,6 +63,7 @@ export default function ChatPanel({
   choiceMapping,
   getLastMessageInfo,
   handleOpenImageModal,
+  isLightTheme,
 }: ChatPanelProps) {
   useEffect(() => {
     if (chatEndRef.current) {
@@ -85,13 +88,13 @@ export default function ChatPanel({
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#0a1014]">
+    <div className={`${isLightTheme ? "bg-gray-50" : "bg-[#0a1014]"} flex flex-col h-full ${isLightTheme ? "text-black" : "text-[#e9edef]"}`}>
       {/* HEADER */}
-      <div className="flex items-center justify-between bg-[#202c33] px-4 py-3">
+      <div className={`${isLightTheme ? "bg-gray-200" : "bg-[#202c33]"} flex items-center justify-between px-4 py-3`}>
         <div className="flex items-center gap-3">
           {isMobile && (
             <button className="mr-1" onClick={handleBack}>
-              <ArrowLeft className="w-5 h-5 text-white" />
+              <ArrowLeft className={`${isLightTheme ? "text-black" : "text-white"} w-5 h-5`} />
             </button>
           )}
           <Image
@@ -103,39 +106,33 @@ export default function ChatPanel({
             unoptimized
           />
           <div>
-            <h2 className="font-medium text-white">{displayName}</h2>
-            <p className="text-xs text-gray-300">
-              Última mensagem: {activeLastTs ? formatTimestamp(activeLastTs) : ""}
-            </p>
+            <h2 className="font-medium">{displayName}</h2>
+            <p className="text-xs">{activeLastTs ? formatTimestamp(activeLastTs) : ""}</p>
           </div>
         </div>
         <div className="flex flex-col items-end gap-2">
           {/* Intervention toggle */}
           <div className="flex items-center space-x-2">
-            <span className="text-sm text-[#e9edef]" title="Ao intervir você desligará as respostas automáticas">
+            <span className="text-sm" title="Ao intervir você desligará as respostas automáticas">
               Intervir:
             </span>
             <button
               onClick={handleToggleIntervention}
-              className={`relative inline-flex w-12 h-6 rounded-full transition-colors duration-200 ${
-                activeChat.intervention ? "bg-[#f6213f]" : "bg-[#374248]"
-              }`}
+              className={`relative inline-flex w-12 h-6 rounded-full transition-colors duration-200 ${activeChat.intervention ? (isLightTheme ? "bg-red-400" : "bg-[#f6213f]") : (isLightTheme ? "bg-gray-400" : "bg-[#374248]")}`}
             >
               <span
-                className={`inline-block w-5 h-5 bg-white rounded-full shadow transform transition-transform duration-200 ${
+                className={`inline-block w-5 h-5 rounded-full shadow transform transition-transform duration-200 ${
                   activeChat.intervention ? "translate-x-6" : "translate-x-0.5"
-                }`}
+                } bg-white`}
               />
             </button>
           </div>
           {/* Refresh */}
           <div className="flex items-center space-x-2">
-            <span className="text-sm text-[#e9edef]" title="Atualiza para ver novas mensagens e conversas">
-              Atualizar:
-            </span>
+            <span className="text-sm" title="Atualiza para ver novas mensagens e conversas">Atualizar:</span>
             <button
               onClick={handleRefresh}
-              className="p-2 text-[#e9edef] bg-[#374248] rounded-full hover:bg-[#4a5961] transition-colors duration-200"
+              className={`${isLightTheme ? "bg-gray-300" : "bg-[#374248]"} p-2 rounded-full hover:${isLightTheme ? "bg-gray-400" : "bg-[#4a5961]"} transition-colors duration-200`}
             >
               <RefreshCw className="w-4 h-4" />
             </button>
@@ -144,15 +141,10 @@ export default function ChatPanel({
       </div>
 
       {/* MESSAGES AREA */}
-      <div
-        className="flex-1 overflow-y-auto p-4 bg-[#0b141a]"
-        style={{
-          backgroundImage: `linear-gradient(rgba(11,20,26,0.95), rgba(11,20,26,0.95)), url("data:image/png;base64,...")`,
-        }}
-      >
+      <div className={`${isLightTheme ? "bg-white" : "bg-[#0b141a]"} flex-1 overflow-y-auto p-4`} style={{ backgroundImage: isLightTheme ? "none" : `linear-gradient(rgba(11,20,26,0.95), rgba(11,20,26,0.95)), url("data:image/png;base64,...")` }}>
         {isLoading ? (
           <div className="flex h-full items-center justify-center">
-            <Sparkles className="h-8 w-8 animate-spin text-[#00a884]" />
+            <Sparkles className={`${isLightTheme ? "text-gray-500" : "text-[#00a884]"} h-8 w-8 animate-spin`} />
           </div>
         ) : activeChat.conversation.length > 0 ? (
           <div>
@@ -169,8 +161,12 @@ export default function ChatPanel({
               return (
                 <React.Fragment key={i}>
                   <div className={isUser ? "flex justify-start mb-1" : "flex justify-end mb-1"}>
-                    <div className={isUser ? "max-w-[70%] bg-[#202c33] text-white px-3 py-2 rounded-lg shadow-sm" : "max-w-[70%] bg-[#005c4b] text-white px-3 py-2 rounded-lg shadow-sm"}>
-                      { !isUser && choice && (
+                    <div className={
+                      isUser
+                        ? `${isLightTheme ? "bg-gray-200 text-black" : "bg-[#202c33] text-white"} max-w-[70%] px-3 py-2 rounded-lg shadow-sm`
+                        : `${isLightTheme ? "bg-green-200 text-black" : "bg-[#005c4b] text-white"} max-w-[70%] px-3 py-2 rounded-lg shadow-sm`
+                    }>
+                      {!isUser && choice && (
                         <div className="mb-1 text-right">
                           <span className="text-xs font-semibold bg-green-300 text-black rounded px-2 py-0.5">
                             {choiceMapping[choice] || choice}
@@ -203,7 +199,7 @@ export default function ChatPanel({
           </div>
         ) : (
           <div className="flex h-full items-center justify-center">
-            <div className="text-center text-[#8696a0]">
+            <div className="text-center">
               <p>No messages yet</p>
               <p className="mt-2 text-sm">Start a conversation with {displayName}</p>
             </div>
@@ -212,7 +208,7 @@ export default function ChatPanel({
       </div>
 
       {/* MESSAGE INPUT */}
-      <div className="bg-[#202c33] p-3 flex-shrink-0">
+      <div className={`${isLightTheme ? "bg-gray-200" : "bg-[#202c33]"} p-3 flex-shrink-0`}>
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -223,14 +219,14 @@ export default function ChatPanel({
           <button
             type="button"
             onClick={handleOpenEmojiPicker}
-            className="rounded-full text-[#8696a0] hover:bg-[#374248] hover:text-[#e9edef] p-2"
+            className="rounded-full p-2 hover:bg-gray-300 text-[#8696a0]"
           >
             <Smile className="h-6 w-6" />
           </button>
           <button
             type="button"
-            onClick={handleOpenImageModal} // Updated to open image modal.
-            className="rounded-full text-[#8696a0] hover:bg-[#374248] hover:text-[#e9edef] p-2"
+            onClick={handleOpenImageModal}
+            className="rounded-full p-2 hover:bg-gray-300 text-[#8696a0]"
           >
             <Paperclip className="h-6 w-6" />
           </button>
@@ -241,20 +237,12 @@ export default function ChatPanel({
             onKeyDown={handleTextAreaKeyDown}
             placeholder="Type a message"
             rows={1}
-            className="flex-1 bg-[#2a3942] text-[#e9edef] placeholder-[#8696a0] border-none rounded-lg py-2 px-3 focus:outline-none resize-none overflow-y-auto"
+            className="flex-1 rounded-lg py-2 px-3 focus:outline-none resize-none overflow-y-auto border-none"
+            style={{ backgroundColor: isLightTheme ? "#e5e7eb" : "#2a3942", color: isLightTheme ? "black" : undefined }}
           />
-          <button type="button" className="rounded-full text-[#8696a0] hover:bg-[#374248] hover:text-[#e9edef] p-2">
-            <ImageIcon className="h-6 w-6" />
+          <button type="submit" className="rounded-full p-2 bg-[#00a884] text-white hover:bg-[#06cf9c]">
+            <ArrowUp className="h-5 w-5" />
           </button>
-          {newMessage.trim() ? (
-            <button type="submit" className="rounded-full bg-[#00a884] text-white hover:bg-[#06cf9c] p-2">
-              <ArrowUp className="h-5 w-5" />
-            </button>
-          ) : (
-            <button type="button" className="rounded-full bg-[#00a884] text-white hover:bg-[#06cf9c] p-2">
-              <Mic className="h-5 w-5" />
-            </button>
-          )}
         </form>
       </div>
     </div>
