@@ -6,11 +6,11 @@ import {
   ArrowLeft,
   ArrowUp,
   Sparkles,
-  Mic,
+  // Mic,
   RefreshCw,
   Paperclip,
   Smile,
-  Image as ImageIcon,
+  // Image as ImageIcon,
 } from "lucide-react";
 import type { ConversationEntry, ChatRecord } from "@/app/page";
 
@@ -49,7 +49,7 @@ export default function ChatPanel({
   activeChat,
   isLoading,
   isMobile,
-  phoneParam,
+  // phoneParam,
   newMessage,
   setNewMessage,
   chatEndRef,
