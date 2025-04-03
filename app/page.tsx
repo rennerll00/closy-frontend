@@ -268,7 +268,7 @@ export default function AdminPage() {
   }, [fetchData]);
 
   // Filter + sort chats
-  const filteredChats = chats.filter((c) => c.recipient === phoneParam);
+  const filteredChats = [...chats]; // no filtering needed anymore
   filteredChats.sort((a, b) => {
     const aInt = a.intervention ? 1 : 0;
     const bInt = b.intervention ? 1 : 0;
