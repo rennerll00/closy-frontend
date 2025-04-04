@@ -256,6 +256,7 @@ export default function AdminPage() {
       setIsLoading(true);
       const data = await getChats(); // internally uses your updated request()
       setChats(data);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error("Error fetching chats:", err);
 

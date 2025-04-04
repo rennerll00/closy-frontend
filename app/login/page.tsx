@@ -24,6 +24,7 @@ export default function LoginPage() {
       localStorage.setItem('token', res.token);
       toast.success('Login realizado com sucesso!');
       router.push('/');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error('Erro no login:', err);
       toast.error(
