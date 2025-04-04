@@ -254,21 +254,25 @@ export default function AdminPage() {
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const data = await getChats();
+      const data = await getChats(); // internally uses your updated request()
       setChats(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error fetching chats:", err);
+
+      if (err.status === 401 || err.status === 500) {
+        router.push('/login');
+      }
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
   // Filter + sort chats
-  const filteredChats = chats.filter((c) => c.recipient === phoneParam);
+  const filteredChats = [...chats]; // no filtering needed anymore
   filteredChats.sort((a, b) => {
     const aInt = a.intervention ? 1 : 0;
     const bInt = b.intervention ? 1 : 0;
