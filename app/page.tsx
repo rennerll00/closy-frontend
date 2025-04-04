@@ -254,14 +254,18 @@ export default function AdminPage() {
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const data = await getChats();
+      const data = await getChats(); // internally uses your updated request()
       setChats(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error fetching chats:", err);
+
+      if (err.status === 401 || err.status === 500) {
+        router.push('/login');
+      }
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     fetchData();

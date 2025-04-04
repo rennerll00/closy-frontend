@@ -40,21 +40,9 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           <div className="mb-8 flex justify-center">
             <div className="flex items-center">
-              <div className="mr-2 text-blue-600">
-                <svg
-                  width="40"
-                  height="40"
-                  viewBox="0 0 40 40"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M20 3.33334C10.8 3.33334 3.33334 10.8 3.33334 20C3.33334 29.2 10.8 36.6667 20 36.6667C29.2 36.6667 36.6667 29.2 36.6667 20C36.6667 10.8 29.2 3.33334 20 3.33334ZM20 8.33334C22.7667 8.33334 25 10.5667 25 13.3333C25 16.1 22.7667 18.3333 20 18.3333C17.2333 18.3333 15 16.1 15 13.3333C15 10.5667 17.2333 8.33334 20 8.33334ZM20 32C15.8333 32 12.1333 29.8333 10 26.5C10.05 23.25 16.6667 21.5 20 21.5C23.3167 21.5 29.95 23.25 30 26.5C27.8667 29.8333 24.1667 32 20 32Z"
-                    fill="#3B5998"
-                  />
-                </svg>
+              <div className="mr-2 text-[#7052FF]">
+                <img src="/images/logoblack.png" alt="Logo" />
               </div>
-              <span className="text-2xl font-bold text-blue-600">ChatJurídico</span>
             </div>
           </div>
 
@@ -84,7 +72,7 @@ export default function LoginPage() {
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full rounded-md bg-blue-600 py-2 text-white hover:bg-blue-700"
+              className="w-full rounded-md bg-[#5A00FE] py-2 text-white font-bold hover:bg-[#5A00FE]"
             >
               {isLoading ? (
                 <span className="flex items-center justify-center">
@@ -105,11 +93,11 @@ export default function LoginPage() {
       </div>
 
       {/* Lateral direita com imagem e texto */}
-      <div className="hidden bg-blue-600 sm:block sm:w-1/2">
+      <div className="hidden bg-[#7052FF] sm:block sm:w-1/2">
         <div className="flex h-full flex-col items-center justify-center px-8 text-white">
           <div className="mb-6 text-center">
-            <h1 className="mb-2 text-4xl font-bold">Multiatendimento para escritórios</h1>
-            <h2 className="text-4xl font-bold">de alta performance</h2>
+            <h1 className="mb-2 text-4xl font-bold">Controle de fúnis de venda</h1>
+            <h2 className="text-4xl font-bold">automatizadas com IA</h2>
           </div>
         </div>
       </div>
