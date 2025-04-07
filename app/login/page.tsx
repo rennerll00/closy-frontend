@@ -12,11 +12,13 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setErrorMessage('');
 
     try {
       // Call the signin function from /lib/api
@@ -27,9 +29,7 @@ export default function LoginPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error('Erro no login:', err);
-      toast.error(
-        err?.message || 'Falha ao fazer login. Verifique seus dados.'
-      );
+      setErrorMessage('Email ou senha incorreto.');
     } finally {
       setIsLoading(false);
     }
@@ -70,6 +70,11 @@ export default function LoginPage() {
                 required
               />
             </div>
+            {errorMessage && (
+              <div className="mb-4 text-center text-red-500">
+                {errorMessage}
+              </div>
+            )}
             <Button
               type="submit"
               disabled={isLoading}
