@@ -9,6 +9,7 @@ import { LogOut } from "lucide-react";
 // Components
 import SidePanel from "@/components/conversation/SidePanel";
 import ChatPanel from "@/components/conversation/ChatPanel";
+import FunilPanel from "@/components/conversation/FunilPanel";
 
 // API functions
 import { getChats, sendDirectMessage, toggleIntervention, logout } from "@/lib/api";
@@ -374,8 +375,22 @@ export default function AdminPage() {
   const [isLightTheme, setIsLightTheme] = useState(true); // changed default to true
   const toggleTheme = () => setIsLightTheme((prev) => !prev);
 
-  const showLeftPanel = !isMobile || !activeChat;
-  const showRightPanel = !isMobile || !!activeChat;
+  // State to control which panel is shown
+  const [activePanel, setActivePanel] = useState<"chat" | "funil">("chat");
+
+  const showLeftPanel = !isMobile || (!activeChat && activePanel === "chat");
+  const showRightPanel = !isMobile || !!activeChat || (isMobile && activePanel === "funil");
+
+  // Log panel visibility for debugging
+  useEffect(() => {
+    console.log('Panel visibility:', {
+      isMobile,
+      activePanel,
+      hasActiveChat: !!activeChat,
+      showLeftPanel,
+      showRightPanel
+    });
+  }, [isMobile, activePanel, activeChat, showLeftPanel, showRightPanel]);
 
   const handleTextAreaKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter") {
@@ -447,6 +462,11 @@ export default function AdminPage() {
     reader.readAsDataURL(imageFile);
   };
 
+  // Add a handler for funnel back button
+  const handleFunilBack = () => {
+    setActivePanel("chat");
+  };
+
   return (
     <div className={`${isLightTheme ? "bg-gray-50 text-black" : "bg-[#0b141a] text-[#e9edef]"} flex flex-col h-screen w-screen overflow-hidden`}>
       {/* TOP NAV BAR (always dark) */}
@@ -472,11 +492,51 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* MAIN LAYOUT: Two columns (SidePanel + ChatPanel) */}
+      {/* MAIN LAYOUT: Two columns (SidePanel + ChatPanel/FunilPanel) */}
       <div className="flex-1 flex overflow-hidden">
         {/* LEFT PANEL */}
         {showLeftPanel && (
           <div className={`${isMobile && !activeChat ? "w-full" : "w-[350px]"} flex-shrink-0 border-r ${isLightTheme ? "border-gray-300 bg-gray-100" : "border-[#222d34] bg-[#111b21]"} flex flex-col`}>
+            <div className="flex justify-between items-center p-3 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => setActivePanel("chat")}
+                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                    activePanel === "chat"
+                      ? isLightTheme
+                        ? "bg-blue-500 text-white"
+                        : "bg-[#00a884] text-white"
+                      : isLightTheme
+                      ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                      : "bg-[#2a3942] text-gray-300 hover:bg-[#3a4a54]"
+                  }`}
+                >
+                  Chat
+                </button>
+                <button
+                  onClick={() => setActivePanel("funil")}
+                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                    activePanel === "funil"
+                      ? isLightTheme
+                        ? "bg-blue-500 text-white"
+                        : "bg-[#00a884] text-white"
+                      : isLightTheme
+                      ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                      : "bg-[#2a3942] text-gray-300 hover:bg-[#3a4a54]"
+                  }`}
+                >
+                  Funil
+                </button>
+              </div>
+              <button
+                onClick={toggleTheme}
+                className={`p-2 rounded-full ${
+                  isLightTheme ? "bg-gray-200 text-gray-700" : "bg-[#2a3942] text-gray-300"
+                }`}
+              >
+                {isLightTheme ? "🌙" : "☀️"}
+              </button>
+            </div>
             <SidePanel
               showLeftPanel={showLeftPanel}
               handleOpenStoreLink={handleOpenStoreLink}
@@ -496,57 +556,151 @@ export default function AdminPage() {
         {/* RIGHT PANEL */}
         {showRightPanel && (
           <div className="flex-1 flex flex-col">
-            {activeChat ? (
-              <ChatPanel
-                activeChat={activeChat}
-                isLoading={isLoading}
-                isMobile={isMobile}
-                phoneParam={phoneParam}
-                newMessage={newMessage}
-                setNewMessage={setNewMessage}
-                chatEndRef={chatEndRef}
-                handleBack={handleBack}
-                handleToggleIntervention={handleToggleIntervention}
-                handleRefresh={handleRefresh}
-                handleTextAreaKeyDown={handleTextAreaKeyDown}
-                handleSendMessage={handleSendMessage}
-                parseEntryIntoSegments={parseEntryIntoSegments}
-                formatTimestamp={formatTimestamp}
-                choiceMapping={choiceMapping}
-                getLastMessageInfo={getLastMessageInfo}
-                handleOpenImageModal={handleOpenImageModal}
-                isLightTheme={isLightTheme}
-              />
+            {activePanel === "chat" ? (
+              activeChat ? (
+                <ChatPanel
+                  activeChat={activeChat}
+                  isLoading={isLoading}
+                  isMobile={isMobile}
+                  phoneParam={phoneParam}
+                  newMessage={newMessage}
+                  setNewMessage={setNewMessage}
+                  chatEndRef={chatEndRef}
+                  handleBack={handleBack}
+                  handleToggleIntervention={handleToggleIntervention}
+                  handleRefresh={handleRefresh}
+                  handleTextAreaKeyDown={handleTextAreaKeyDown}
+                  handleSendMessage={handleSendMessage}
+                  parseEntryIntoSegments={parseEntryIntoSegments}
+                  formatTimestamp={formatTimestamp}
+                  choiceMapping={choiceMapping}
+                  getLastMessageInfo={getLastMessageInfo}
+                  handleOpenImageModal={handleOpenImageModal}
+                  isLightTheme={isLightTheme}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full text-[#8696a0]">
+                  No chat selected
+                </div>
+              )
             ) : (
-              <div className="flex items-center justify-center h-full text-[#8696a0]">
-                No chat selected
-              </div>
+              <FunilPanel
+                isLightTheme={isLightTheme}
+                isMobile={isMobile}
+                handleBack={handleFunilBack}
+              />
             )}
           </div>
         )}
         {/* IMAGE MODAL */}
         {imageModalOpen && (
           <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
-            <div className="bg-[#0b141a] p-4 rounded-md w-80">
-              <h2 className="mb-2 text-lg">Enviar Imagem</h2>
-              <input type="file" accept="image/*" onChange={handleImageFileChange} />
-              <textarea
-                value={imageCaption}
-                onChange={(e) => setImageCaption(e.target.value)}
-                placeholder="Digite uma legenda (opcional)"
-                className="w-full mt-2 p-2 bg-[#2a3942] border-none rounded-md text-white"
-              />
-              <div className="mt-4 flex justify-end gap-2">
+            <div className={`${isLightTheme ? "bg-white" : "bg-[#1f2c33]"} p-6 rounded-lg w-96 shadow-xl`}>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className={`text-lg font-medium ${isLightTheme ? "text-gray-800" : "text-white"}`}>
+                  Enviar Imagem
+                </h2>
                 <button
                   onClick={handleCloseImageModal}
-                  className="px-3 py-1 bg-gray-500 rounded-md"
+                  className={`rounded-full p-1 ${isLightTheme ? "hover:bg-gray-200" : "hover:bg-[#374248]"}`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${isLightTheme ? "text-gray-500" : "text-gray-300"}`} viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Image Preview */}
+              <div className={`mb-4 border-2 border-dashed rounded-lg p-4 text-center ${isLightTheme ? "border-gray-300 bg-gray-50" : "border-gray-600 bg-[#2a3942]"}`}>
+                {imageFile ? (
+                  <div className="relative">
+                    <img
+                      src={URL.createObjectURL(imageFile)}
+                      alt="Preview"
+                      className="max-h-48 mx-auto rounded-md object-contain"
+                    />
+                    <button
+                      onClick={() => setImageFile(null)}
+                      className={`absolute top-1 right-1 rounded-full p-1 ${isLightTheme ? "bg-gray-200 hover:bg-gray-300" : "bg-[#374248] hover:bg-[#4a5c66]"}`}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <svg xmlns="http://www.w3.org/2000/svg" className={`h-12 w-12 mx-auto mb-2 ${isLightTheme ? "text-gray-400" : "text-gray-500"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p className={`text-sm ${isLightTheme ? "text-gray-500" : "text-gray-400"}`}>Clique para selecionar ou arraste uma imagem</p>
+                  </div>
+                )}
+              </div>
+
+              {/* File Input (hidden but functional) */}
+              <input
+                type="file"
+                id="image-upload"
+                accept="image/*"
+                onChange={handleImageFileChange}
+                className="hidden"
+              />
+              <label
+                htmlFor="image-upload"
+                className={`block mb-4 py-2 px-4 text-center rounded-md cursor-pointer ${
+                  isLightTheme
+                    ? "bg-gray-200 text-gray-800 hover:bg-gray-300"
+                    : "bg-[#2a3942] text-white hover:bg-[#374248]"
+                }`}
+              >
+                {imageFile ? "Alterar imagem" : "Selecionar imagem"}
+              </label>
+
+              {/* Caption Input */}
+              <div className="mb-4">
+                <label
+                  htmlFor="caption"
+                  className={`block mb-2 text-sm font-medium ${isLightTheme ? "text-gray-700" : "text-gray-300"}`}
+                >
+                  Legenda (opcional)
+                </label>
+                <textarea
+                  id="caption"
+                  value={imageCaption}
+                  onChange={(e) => setImageCaption(e.target.value)}
+                  placeholder="Digite uma legenda para sua imagem..."
+                  rows={3}
+                  className={`w-full p-3 rounded-md resize-none focus:outline-none focus:ring-2 ${
+                    isLightTheme
+                      ? "bg-white border border-gray-300 text-gray-800 focus:ring-blue-500"
+                      : "bg-[#2a3942] border border-[#374248] text-white focus:ring-[#00a884]"
+                  }`}
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={handleCloseImageModal}
+                  className={`px-4 py-2 rounded-md font-medium ${
+                    isLightTheme
+                      ? "bg-gray-200 text-gray-800 hover:bg-gray-300"
+                      : "bg-[#374248] text-white hover:bg-[#4a5c66]"
+                  }`}
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleSendImageMessage}
-                  className="px-3 py-1 bg-[#00a884] rounded-md"
                   disabled={!imageFile}
+                  className={`px-4 py-2 rounded-md font-medium ${
+                    !imageFile
+                      ? "bg-gray-400 text-gray-200 cursor-not-allowed"
+                      : isLightTheme
+                        ? "bg-blue-500 text-white hover:bg-blue-600"
+                        : "bg-[#00a884] text-white hover:bg-[#06cf9c]"
+                  }`}
                 >
                   Enviar
                 </button>

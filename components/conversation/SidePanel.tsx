@@ -57,7 +57,6 @@ export default function SidePanel({
   getLastMessageInfo,
   formatTimestamp,
   isLightTheme,
-  toggleTheme,
 }: SidePanelProps) {
   // Local state for searching by phone or last message
   const [searchQuery, setSearchQuery] = useState("");
@@ -95,7 +94,7 @@ export default function SidePanel({
 
   return (
     <div className={`${isLightTheme ? "bg-white border-r border-gray-300" : "bg-[#111b21] border-r border-[#222d34]"} flex h-full flex-col`}>
-      {/* Header with search + open link button + theme toggle */}
+      {/* Header with search + open link button */}
       <div className={`${isLightTheme ? "bg-gray-100" : "bg-[#202c33]"} p-2`}>
         {/* Search Bar */}
         <div className="relative mb-2">
@@ -113,16 +112,9 @@ export default function SidePanel({
         <div className="flex justify-between items-center">
           <button
             onClick={handleOpenStoreLink}
-            className={`${isLightTheme ? "text-sm text-black hover:bg-gray-200" : "text-sm text-[#8696a0] hover:bg-[#374248]"} hover:text-[#e9edef] px-3 py-1 rounded-md`}
+            className={`${isLightTheme ? "text-sm text-black hover:bg-gray-200" : "text-sm text-[#8696a0] hover:bg-[#374248]"} hover:text-[#e9edef] px-3 py-1 rounded-md w-full`}
           >
             Abrir link
-          </button>
-          {/* Theme toggle button */}
-          <button
-            onClick={toggleTheme}
-            className={`${isLightTheme ? "bg-gray-300 text-black" : "bg-[#374248] text-[#e9edef]"} px-3 py-1 rounded-md text-sm`}
-          >
-            {isLightTheme ? "Dark Theme" : "Light Theme"}
           </button>
         </div>
       </div>

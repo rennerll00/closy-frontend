@@ -226,7 +226,12 @@ export default function ChatPanel({
           <button
             type="button"
             onClick={handleOpenImageModal}
-            className="rounded-full p-2 hover:bg-gray-300 text-[#8696a0]"
+            className={`rounded-full p-2 ${
+              isLightTheme
+                ? "hover:bg-gray-300 text-[#8696a0]"
+                : "hover:bg-[#374248] text-[#8696a0]"
+            }`}
+            title="Enviar imagem"
           >
             <Paperclip className="h-6 w-6" />
           </button>
