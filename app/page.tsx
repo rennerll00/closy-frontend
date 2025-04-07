@@ -4,13 +4,14 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useCallback } from "react";
 import Image from "next/image";
 import React from "react";
+import { LogOut } from "lucide-react";
 
 // Components
 import SidePanel from "@/components/conversation/SidePanel";
 import ChatPanel from "@/components/conversation/ChatPanel";
 
 // API functions
-import { getChats, sendDirectMessage, toggleIntervention } from "@/lib/api";
+import { getChats, sendDirectMessage, toggleIntervention, logout } from "@/lib/api";
 
 // --- Interfaces ---
 interface BotImageMessage {
@@ -235,6 +236,14 @@ function getLastMessageInfo(convo: ConversationEntry[]) {
 export default function AdminPage() {
   const router = useRouter();
 
+  // Authentication check
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/login');
+    }
+  }, [router]);
+
   // URL params
   const [phoneParam, setPhoneParam] = useState("");
   const [userPhoneParam, setUserPhoneParam] = useState("");
@@ -380,6 +389,11 @@ export default function AdminPage() {
     window.open(link, "_blank");
   };
 
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+  };
+
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageCaption, setImageCaption] = useState("");
@@ -436,7 +450,8 @@ export default function AdminPage() {
   return (
     <div className={`${isLightTheme ? "bg-gray-50 text-black" : "bg-[#0b141a] text-[#e9edef]"} flex flex-col h-screen w-screen overflow-hidden`}>
       {/* TOP NAV BAR (always dark) */}
-      <div className="relative text-center p-4 border-b border-[#222d34] bg-[#202c33] text-white">
+      <div className="relative flex items-center justify-between p-4 border-b border-[#222d34] bg-[#202c33] text-white">
+        <div className="w-24"></div> {/* Empty div for balance */}
         <Image
           src="/images/logo.png"
           alt="Logo"
@@ -446,6 +461,15 @@ export default function AdminPage() {
           onClick={() => router.replace("/")}
           unoptimized
         />
+        <div className="w-24 flex justify-end">
+          <button
+            onClick={handleLogout}
+            className="px-3 py-1 rounded-md bg-[#3a4a54] hover:bg-[#4a5c66] text-sm font-medium transition-colors flex items-center gap-2"
+          >
+            <LogOut size={16} />
+            Sair
+          </button>
+        </div>
       </div>
 
       {/* MAIN LAYOUT: Two columns (SidePanel + ChatPanel) */}
