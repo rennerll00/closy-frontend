@@ -43,7 +43,6 @@ interface SidePanelProps {
   getLastMessageInfo: (convo: ConversationEntry[]) => { lastMsg: string; lastTs: number };
   formatTimestamp: (ts: number) => string;
   isLightTheme: boolean;
-  toggleTheme: () => void;
 }
 
 export default function SidePanel({

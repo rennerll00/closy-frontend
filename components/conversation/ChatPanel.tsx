@@ -141,7 +141,12 @@ export default function ChatPanel({
       </div>
 
       {/* MESSAGES AREA */}
-      <div className={`${isLightTheme ? "bg-white" : "bg-[#0b141a]"} flex-1 overflow-y-auto p-4`} style={{ backgroundImage: isLightTheme ? "none" : `linear-gradient(rgba(11,20,26,0.95), rgba(11,20,26,0.95)), url("data:image/png;base64,...")` }}>
+      <div
+        className={`${isLightTheme ? "bg-white" : "bg-[#0b141a]"} flex-1 overflow-y-auto p-4`}
+        style={{
+          backgroundImage: isLightTheme ? "none" : `linear-gradient(rgba(11,20,26,0.95), rgba(11,20,26,0.95)), url("data:image/png;base64,...")`,
+        }}
+      >
         {isLoading ? (
           <div className="flex h-full items-center justify-center">
             <Sparkles className={`${isLightTheme ? "text-gray-500" : "text-[#00a884]"} h-8 w-8 animate-spin`} />

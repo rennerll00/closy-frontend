@@ -9,7 +9,8 @@ import { LogOut } from "lucide-react";
 // Components
 import SidePanel from "@/components/conversation/SidePanel";
 import ChatPanel from "@/components/conversation/ChatPanel";
-import FunilPanel from "@/components/conversation/FunilPanel";
+import FunilPanel from "@/components/settings/FunilPanel";
+import NavigationSideBar from "@/components/settings/NavigationSideBar";
 
 // API functions
 import { getChats, sendDirectMessage, toggleIntervention, logout } from "@/lib/api";
@@ -469,129 +470,104 @@ export default function AdminPage() {
 
   return (
     <div className={`${isLightTheme ? "bg-gray-50 text-black" : "bg-[#0b141a] text-[#e9edef]"} flex flex-col h-screen w-screen overflow-hidden`}>
-      {/* TOP NAV BAR (always dark) */}
-      <div className="relative flex items-center justify-between p-4 border-b border-[#222d34] bg-[#202c33] text-white">
-        <div className="w-24"></div> {/* Empty div for balance */}
-        <Image
-          src="/images/logo.png"
-          alt="Logo"
-          width={100}
-          height={40}
-          className="mx-auto cursor-pointer object-contain"
-          onClick={() => router.replace("/")}
-          unoptimized
-        />
-        <div className="w-24 flex justify-end">
-          <button
-            onClick={handleLogout}
-            className="px-3 py-1 rounded-md bg-[#3a4a54] hover:bg-[#4a5c66] text-sm font-medium transition-colors flex items-center gap-2"
-          >
-            <LogOut size={16} />
-            Sair
-          </button>
+      {/* TOP NAV BAR (only on desktop) */}
+      {!isMobile && (
+        <div className="relative flex items-center justify-between p-4 border-b border-[#222d34] bg-[#202c33] text-white">
+          <div className="w-24"></div> {/* Empty div for balance */}
+          <Image
+            src="/images/logo.png"
+            alt="Logo"
+            width={100}
+            height={40}
+            className="mx-auto cursor-pointer object-contain"
+            onClick={() => router.replace("/")}
+            unoptimized
+          />
+          <div className="w-24 flex justify-end">
+            <button
+              onClick={handleLogout}
+              className="px-3 py-1 rounded-md bg-[#3a4a54] hover:bg-[#4a5c66] text-sm font-medium transition-colors flex items-center gap-2"
+            >
+              <LogOut size={16} />
+              Sair
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* MAIN LAYOUT: Two columns (SidePanel + ChatPanel/FunilPanel) */}
+      {/* MAIN LAYOUT: Navigation + Two columns (SidePanel + ChatPanel/FunilPanel) */}
       <div className="flex-1 flex overflow-hidden">
-        {/* LEFT PANEL */}
-        {showLeftPanel && (
-          <div className={`${isMobile && !activeChat ? "w-full" : "w-[350px]"} flex-shrink-0 border-r ${isLightTheme ? "border-gray-300 bg-gray-100" : "border-[#222d34] bg-[#111b21]"} flex flex-col`}>
-            <div className="flex justify-between items-center p-3 border-b border-gray-200 dark:border-gray-700">
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => setActivePanel("chat")}
-                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                    activePanel === "chat"
-                      ? isLightTheme
-                        ? "bg-blue-500 text-white"
-                        : "bg-[#00a884] text-white"
-                      : isLightTheme
-                      ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                      : "bg-[#2a3942] text-gray-300 hover:bg-[#3a4a54]"
-                  }`}
-                >
-                  Chat
-                </button>
-                <button
-                  onClick={() => setActivePanel("funil")}
-                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                    activePanel === "funil"
-                      ? isLightTheme
-                        ? "bg-blue-500 text-white"
-                        : "bg-[#00a884] text-white"
-                      : isLightTheme
-                      ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                      : "bg-[#2a3942] text-gray-300 hover:bg-[#3a4a54]"
-                  }`}
-                >
-                  Funil
-                </button>
-              </div>
-              <button
-                onClick={toggleTheme}
-                className={`p-2 rounded-full ${
-                  isLightTheme ? "bg-gray-200 text-gray-700" : "bg-[#2a3942] text-gray-300"
-                }`}
-              >
-                {isLightTheme ? "🌙" : "☀️"}
-              </button>
-            </div>
-            <SidePanel
-              showLeftPanel={showLeftPanel}
-              handleOpenStoreLink={handleOpenStoreLink}
-              isLoading={isLoading}
-              uniqueUserPhones={uniqueUserPhones}
-              filteredChats={filteredChats}
-              userPhoneParam={userPhoneParam}
-              handleChatSelect={handleChatSelect}
-              getLastMessageInfo={getLastMessageInfo}
-              formatTimestamp={formatTimestamp}
-              isLightTheme={isLightTheme}
-              toggleTheme={toggleTheme}
-            />
-          </div>
-        )}
+        {/* Navigation sidebar */}
+        <NavigationSideBar
+          activePanel={activePanel}
+          setActivePanel={setActivePanel}
+          isMobile={isMobile}
+          isLightTheme={isLightTheme}
+          toggleTheme={toggleTheme}
+          handleLogout={handleLogout}
+        />
 
-        {/* RIGHT PANEL */}
-        {showRightPanel && (
-          <div className="flex-1 flex flex-col">
-            {activePanel === "chat" ? (
-              activeChat ? (
-                <ChatPanel
-                  activeChat={activeChat}
-                  isLoading={isLoading}
-                  isMobile={isMobile}
-                  phoneParam={phoneParam}
-                  newMessage={newMessage}
-                  setNewMessage={setNewMessage}
-                  chatEndRef={chatEndRef}
-                  handleBack={handleBack}
-                  handleToggleIntervention={handleToggleIntervention}
-                  handleRefresh={handleRefresh}
-                  handleTextAreaKeyDown={handleTextAreaKeyDown}
-                  handleSendMessage={handleSendMessage}
-                  parseEntryIntoSegments={parseEntryIntoSegments}
-                  formatTimestamp={formatTimestamp}
-                  choiceMapping={choiceMapping}
-                  getLastMessageInfo={getLastMessageInfo}
-                  handleOpenImageModal={handleOpenImageModal}
-                  isLightTheme={isLightTheme}
-                />
-              ) : (
-                <div className="flex items-center justify-center h-full text-[#8696a0]">
-                  No chat selected
-                </div>
-              )
-            ) : (
-              <FunilPanel
+        {/* Content area with adjusted padding for mobile bottom bar */}
+        <div className={`flex flex-1 ${isMobile ? "pb-16" : ""}`}>
+          {/* LEFT PANEL */}
+          {showLeftPanel && (
+            <div className={`${isMobile && !activeChat ? "w-full" : "w-[350px]"} flex-shrink-0 border-r ${isLightTheme ? "border-gray-300 bg-gray-100" : "border-[#222d34] bg-[#111b21]"} flex flex-col`}>
+              <SidePanel
+                showLeftPanel={showLeftPanel}
+                handleOpenStoreLink={handleOpenStoreLink}
+                isLoading={isLoading}
+                uniqueUserPhones={uniqueUserPhones}
+                filteredChats={filteredChats}
+                userPhoneParam={userPhoneParam}
+                handleChatSelect={handleChatSelect}
+                getLastMessageInfo={getLastMessageInfo}
+                formatTimestamp={formatTimestamp}
                 isLightTheme={isLightTheme}
-                isMobile={isMobile}
-                handleBack={handleFunilBack}
               />
-            )}
-          </div>
-        )}
+            </div>
+          )}
+
+          {/* RIGHT PANEL */}
+          {showRightPanel && (
+            <div className="flex-1 flex flex-col">
+              {activePanel === "chat" ? (
+                activeChat ? (
+                  <ChatPanel
+                    activeChat={activeChat}
+                    isLoading={isLoading}
+                    isMobile={isMobile}
+                    phoneParam={phoneParam}
+                    newMessage={newMessage}
+                    setNewMessage={setNewMessage}
+                    chatEndRef={chatEndRef}
+                    handleBack={handleBack}
+                    handleToggleIntervention={handleToggleIntervention}
+                    handleRefresh={handleRefresh}
+                    handleTextAreaKeyDown={handleTextAreaKeyDown}
+                    handleSendMessage={handleSendMessage}
+                    parseEntryIntoSegments={parseEntryIntoSegments}
+                    formatTimestamp={formatTimestamp}
+                    choiceMapping={choiceMapping}
+                    getLastMessageInfo={getLastMessageInfo}
+                    handleOpenImageModal={handleOpenImageModal}
+                    isLightTheme={isLightTheme}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-[#8696a0]">
+                    No chat selected
+                  </div>
+                )
+              ) : (
+                <FunilPanel
+                  isLightTheme={isLightTheme}
+                  isMobile={isMobile}
+                  handleBack={handleFunilBack}
+                />
+              )}
+            </div>
+          )}
+        </div>
+
         {/* IMAGE MODAL */}
         {imageModalOpen && (
           <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
