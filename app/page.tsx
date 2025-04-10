@@ -9,7 +9,6 @@ import { LogOut } from "lucide-react";
 // Components
 import SidePanel from "@/components/conversation/SidePanel";
 import ChatPanel from "@/components/conversation/ChatPanel";
-import FunilPanel from "@/components/settings/FunilPanel";
 import NavigationSideBar from "@/components/settings/NavigationSideBar";
 
 // API functions
@@ -376,22 +375,11 @@ export default function AdminPage() {
   const [isLightTheme, setIsLightTheme] = useState(true); // changed default to true
   const toggleTheme = () => setIsLightTheme((prev) => !prev);
 
-  // State to control which panel is shown
+  // State to control which panel is shown - always chat on this page
   const [activePanel, setActivePanel] = useState<"chat" | "funil">("chat");
 
   const showLeftPanel = !isMobile || (!activeChat && activePanel === "chat");
-  const showRightPanel = !isMobile || !!activeChat || (isMobile && activePanel === "funil");
-
-  // Log panel visibility for debugging
-  useEffect(() => {
-    console.log('Panel visibility:', {
-      isMobile,
-      activePanel,
-      hasActiveChat: !!activeChat,
-      showLeftPanel,
-      showRightPanel
-    });
-  }, [isMobile, activePanel, activeChat, showLeftPanel, showRightPanel]);
+  const showRightPanel = !isMobile || !!activeChat;
 
   const handleTextAreaKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter") {
@@ -463,11 +451,6 @@ export default function AdminPage() {
     reader.readAsDataURL(imageFile);
   };
 
-  // Add a handler for funnel back button
-  const handleFunilBack = () => {
-    setActivePanel("chat");
-  };
-
   return (
     <div className={`${isLightTheme ? "bg-gray-50 text-black" : "bg-[#0b141a] text-[#e9edef]"} flex flex-col h-screen w-screen overflow-hidden`}>
       {/* TOP NAV BAR (only on desktop) */}
@@ -530,39 +513,31 @@ export default function AdminPage() {
           {/* RIGHT PANEL */}
           {showRightPanel && (
             <div className="flex-1 flex flex-col">
-              {activePanel === "chat" ? (
-                activeChat ? (
-                  <ChatPanel
-                    activeChat={activeChat}
-                    isLoading={isLoading}
-                    isMobile={isMobile}
-                    phoneParam={phoneParam}
-                    newMessage={newMessage}
-                    setNewMessage={setNewMessage}
-                    chatEndRef={chatEndRef}
-                    handleBack={handleBack}
-                    handleToggleIntervention={handleToggleIntervention}
-                    handleRefresh={handleRefresh}
-                    handleTextAreaKeyDown={handleTextAreaKeyDown}
-                    handleSendMessage={handleSendMessage}
-                    parseEntryIntoSegments={parseEntryIntoSegments}
-                    formatTimestamp={formatTimestamp}
-                    choiceMapping={choiceMapping}
-                    getLastMessageInfo={getLastMessageInfo}
-                    handleOpenImageModal={handleOpenImageModal}
-                    isLightTheme={isLightTheme}
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full text-[#8696a0]">
-                    No chat selected
-                  </div>
-                )
-              ) : (
-                <FunilPanel
-                  isLightTheme={isLightTheme}
+              {activeChat ? (
+                <ChatPanel
+                  activeChat={activeChat}
+                  isLoading={isLoading}
                   isMobile={isMobile}
-                  handleBack={handleFunilBack}
+                  phoneParam={phoneParam}
+                  newMessage={newMessage}
+                  setNewMessage={setNewMessage}
+                  chatEndRef={chatEndRef}
+                  handleBack={handleBack}
+                  handleToggleIntervention={handleToggleIntervention}
+                  handleRefresh={handleRefresh}
+                  handleTextAreaKeyDown={handleTextAreaKeyDown}
+                  handleSendMessage={handleSendMessage}
+                  parseEntryIntoSegments={parseEntryIntoSegments}
+                  formatTimestamp={formatTimestamp}
+                  choiceMapping={choiceMapping}
+                  getLastMessageInfo={getLastMessageInfo}
+                  handleOpenImageModal={handleOpenImageModal}
+                  isLightTheme={isLightTheme}
                 />
+              ) : (
+                <div className="flex items-center justify-center h-full text-[#8696a0]">
+                  No chat selected
+                </div>
               )}
             </div>
           )}

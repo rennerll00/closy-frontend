@@ -1,5 +1,6 @@
 import React from "react";
-import { MessageSquare, PieChart, Sun, Moon, LogOut } from "lucide-react";
+import { MessageSquare, Sun, Moon, LogOut, TrendingUp } from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
 
 interface NavigationSideBarProps {
   activePanel: "chat" | "funil";
@@ -18,6 +19,24 @@ export default function NavigationSideBar({
   toggleTheme,
   handleLogout,
 }: NavigationSideBarProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const isOnFunilPage = pathname === "/funil";
+
+  const handleNavigation = (panel: "chat" | "funil") => {
+    if (panel === "funil") {
+      router.push("/funil");
+    } else {
+      // If already on home page, use the panel toggle
+      if (pathname === "/") {
+        setActivePanel("chat");
+      } else {
+        router.push("/");
+      }
+    }
+  };
+
   return (
     <div
       className={`${isLightTheme ? "bg-gray-200" : "bg-[#111b21]"} ${
@@ -33,9 +52,9 @@ export default function NavigationSideBar({
         }`}
       >
         <button
-          onClick={() => setActivePanel("chat")}
+          onClick={() => handleNavigation("chat")}
           className={`p-3 rounded-full transition-colors ${
-            activePanel === "chat"
+            !isOnFunilPage
               ? isLightTheme
                 ? "bg-blue-500 text-white"
                 : "bg-[#00a884] text-white"
@@ -49,9 +68,9 @@ export default function NavigationSideBar({
         </button>
 
         <button
-          onClick={() => setActivePanel("funil")}
+          onClick={() => handleNavigation("funil")}
           className={`p-3 rounded-full transition-colors ${
-            activePanel === "funil"
+            isOnFunilPage
               ? isLightTheme
                 ? "bg-blue-500 text-white"
                 : "bg-[#00a884] text-white"
@@ -61,7 +80,7 @@ export default function NavigationSideBar({
           }`}
           title="Funil"
         >
-          <PieChart size={24} />
+          <TrendingUp size={24} />
         </button>
 
         <button
@@ -76,19 +95,17 @@ export default function NavigationSideBar({
           {isLightTheme ? <Moon size={24} /> : <Sun size={24} />}
         </button>
 
-        {!isMobile && (
-          <button
-            onClick={handleLogout}
-            className={`p-3 rounded-full transition-colors ${
-              isLightTheme
-                ? "text-gray-700 hover:bg-gray-300"
-                : "text-[#aebac1] hover:bg-[#202c33]"
-            }`}
-            title="Logout"
-          >
-            <LogOut size={24} />
-          </button>
-        )}
+        <button
+          onClick={handleLogout}
+          className={`p-3 rounded-full transition-colors ${
+            isLightTheme
+              ? "text-gray-700 hover:bg-gray-300"
+              : "text-[#aebac1] hover:bg-[#202c33]"
+          }`}
+          title="Logout"
+        >
+          <LogOut size={24} />
+        </button>
       </div>
     </div>
   );
