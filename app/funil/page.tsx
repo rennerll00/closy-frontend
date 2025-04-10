@@ -15,6 +15,8 @@ import { logout } from "@/lib/api";
 export default function FunilPage() {
   const router = useRouter();
   const [sellerId, setSellerId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [ecommerceId, setEcommerceId] = useState<string | null>(null);
 
   // Authentication check
   useEffect(() => {
@@ -26,7 +28,13 @@ export default function FunilPage() {
       try {
         const tokenData = JSON.parse(atob(token.split('.')[1]));
         setSellerId(tokenData.sellerId || "default-seller");
-        console.log("Using seller ID from token:", tokenData.sellerId);
+        setUserRole(tokenData.role || null);
+        setEcommerceId(tokenData.ecommerceId || null);
+        console.log("Using token data:", {
+          sellerId: tokenData.sellerId,
+          userRole: tokenData.role,
+          ecommerceId: tokenData.ecommerceId
+        });
       } catch (error) {
         console.error("Error parsing token:", error);
         setSellerId("default-seller");
@@ -111,6 +119,8 @@ export default function FunilPage() {
             isLightTheme={isLightTheme}
             isMobile={isMobile}
             sellerId={sellerId}
+            userRole={userRole || undefined}
+            ecommerceId={ecommerceId || undefined}
           />
         </div>
       </div>

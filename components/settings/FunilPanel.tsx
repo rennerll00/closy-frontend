@@ -1,12 +1,14 @@
 import { Filter, X, RotateCw, Percent, Hash, Calendar } from "lucide-react";
 import { useState, useEffect } from "react";
-import { getFunilAnalytics } from "@/lib/api";
+import { getFunilAnalytics, getSellersByEcommerce } from "@/lib/api";
 import { useRouter, useSearchParams } from "next/navigation";
 
 interface FunilPanelProps {
   isLightTheme: boolean;
   isMobile: boolean;
   sellerId: string;
+  userRole?: string;
+  ecommerceId?: string;
   handleBack?: () => void;
 }
 
@@ -25,11 +27,21 @@ interface FilterParams {
   startDate: string | null;
   endDate: string | null;
   period: string;
+  sellerId?: string;
 }
 
-export default function FunilPanel({ isLightTheme, isMobile, sellerId, handleBack }: FunilPanelProps) {
+interface Seller {
+  id: string;
+  sellerId?: string; // Some APIs might return id as 'sellerId'
+  name: string;
+  email?: string;
+  role?: string;
+}
+
+export default function FunilPanel({ isLightTheme, isMobile, sellerId, userRole, ecommerceId, handleBack }: FunilPanelProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const isAdmin = userRole === 'ADMIN';
 
   const [showFilters, setShowFilters] = useState(false);
   const [funilData, setFunilData] = useState<FunilData | null>(null);
@@ -37,6 +49,7 @@ export default function FunilPanel({ isLightTheme, isMobile, sellerId, handleBac
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showBars, setShowBars] = useState(false);
   const [showPercentage, setShowPercentage] = useState(true);
+  const [sellers, setSellers] = useState<Array<{id: string, name: string}>>([]);
 
   // Filter states
   const [filterParams, setFilterParams] = useState<FilterParams>({
@@ -44,6 +57,7 @@ export default function FunilPanel({ isLightTheme, isMobile, sellerId, handleBac
     startDate: null,
     endDate: null,
     period: 'all',
+    sellerId: isAdmin ? 'all' : sellerId,
   });
 
   // Add a separate state for temporary filter values
@@ -52,27 +66,65 @@ export default function FunilPanel({ isLightTheme, isMobile, sellerId, handleBac
     startDate: null,
     endDate: null,
     period: 'all',
+    sellerId: isAdmin ? 'all' : sellerId,
   });
+
+  // Fetch sellers for the admin dropdown
+  useEffect(() => {
+    if (isAdmin && ecommerceId) {
+      // Fetch sellers from the API
+      getSellersByEcommerce(ecommerceId)
+        .then(data => {
+          // Add the "all" option at the beginning
+          const sellerOptions = [
+            { id: 'all', name: 'Todos os vendedores' },
+            // Map received sellers to the correct format
+            ...data.map((seller: Seller) => ({
+              id: seller.id || seller.sellerId,
+              name: seller.name || 'Vendedor sem nome'
+            }))
+          ];
+
+          // Check if current user is in the list, if not add them
+          const currentUserInList = sellerOptions.some(s => s.id === sellerId);
+          if (!currentUserInList && sellerId !== 'all') {
+            sellerOptions.push({ id: sellerId, name: 'Você' });
+          }
+
+          setSellers(sellerOptions);
+        })
+        .catch(error => {
+          console.error('Error fetching sellers:', error);
+          // Fallback to default sellers if API fails
+          setSellers([
+            { id: 'all', name: 'Todos os vendedores' },
+            { id: sellerId, name: 'Você' }
+          ]);
+        });
+    }
+  }, [isAdmin, ecommerceId, sellerId]);
 
   // Parse URL params on initial load
   useEffect(() => {
     const is_passive = searchParams.get('is_passive');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
+    const sellerIdParam = searchParams.get('sellerId');
 
-    console.log('URL params detected:', { is_passive, startDate, endDate });
+    console.log('URL params detected:', { is_passive, startDate, endDate, sellerId: sellerIdParam });
 
     const newParams = {
       is_passive: is_passive === 'true' ? true : is_passive === 'false' ? false : null,
       startDate: startDate || null,
       endDate: endDate || null,
       period: startDate && endDate ? 'custom' : 'all',
+      sellerId: isAdmin ? (sellerIdParam || 'all') : sellerId,
     };
 
     console.log('New filter params set from URL:', newParams);
     setFilterParams(newParams);
     setTempFilterParams(newParams);
-  }, [searchParams]);
+  }, [searchParams, sellerId, isAdmin]);
 
   const fetchData = async () => {
     try {
@@ -81,7 +133,13 @@ export default function FunilPanel({ isLightTheme, isMobile, sellerId, handleBac
       setShowBars(false);
       // Pass the filter params to the API
       console.log('Fetching data with filters:', JSON.stringify(filterParams));
-      const data = await getFunilAnalytics(sellerId, {
+
+      // Determine which sellerId to pass to the API
+      const apiSellerId = isAdmin && filterParams.sellerId === 'all'
+        ? undefined  // For "all sellers" we pass undefined to get all data
+        : filterParams.sellerId || sellerId;  // Otherwise use the selected or default seller
+
+      const data = await getFunilAnalytics(apiSellerId, {
         is_passive: filterParams.is_passive,
         startDate: filterParams.startDate,
         endDate: filterParams.endDate
@@ -180,6 +238,13 @@ export default function FunilPanel({ isLightTheme, isMobile, sellerId, handleBac
     }));
   };
 
+  const handleSellerChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setTempFilterParams(prev => ({
+      ...prev,
+      sellerId: e.target.value
+    }));
+  };
+
   const handleApplyFilters = () => {
     // Reset bars and UI state
     setShowBars(false);
@@ -206,6 +271,11 @@ export default function FunilPanel({ isLightTheme, isMobile, sellerId, handleBac
       if (tempFilterParams.endDate) {
         params.set('endDate', tempFilterParams.endDate);
       }
+    }
+
+    // Add sellerId param for admins if it's not 'all'
+    if (isAdmin && tempFilterParams.sellerId !== 'all') {
+      params.set('sellerId', tempFilterParams.sellerId || sellerId);
     }
 
     router.push(`/funil?${params.toString()}`);
@@ -656,20 +726,27 @@ export default function FunilPanel({ isLightTheme, isMobile, sellerId, handleBac
                   </div>
                 </div>
 
-                {/* Seller Filter */}
-                <div>
-                  <h3 className="text-sm font-medium mb-2">Vendedor</h3>
-                  <select className={`w-full p-2 rounded-md ${
-                    isLightTheme
-                      ? "bg-white border border-gray-300"
-                      : "bg-[#2a3942] border border-[#374248]"
-                  }`}>
-                    <option>Todos os vendedores</option>
-                    <option>Vendedor 1</option>
-                    <option>Vendedor 2</option>
-                    <option>Vendedor 3</option>
-                  </select>
-                </div>
+                {/* Seller Filter - Only show for ADMIN users */}
+                {isAdmin && (
+                  <div>
+                    <h3 className="text-sm font-medium mb-2">Vendedor</h3>
+                    <select
+                      value={tempFilterParams.sellerId || 'all'}
+                      onChange={handleSellerChange}
+                      className={`w-full p-2 rounded-md ${
+                        isLightTheme
+                          ? "bg-white border border-gray-300"
+                          : "bg-[#2a3942] border border-[#374248]"
+                      }`}
+                    >
+                      {sellers.map(seller => (
+                        <option key={seller.id} value={seller.id}>
+                          {seller.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
             </div>
 
