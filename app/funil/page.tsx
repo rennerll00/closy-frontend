@@ -14,12 +14,23 @@ import { logout } from "@/lib/api";
 
 export default function FunilPage() {
   const router = useRouter();
+  const [sellerId, setSellerId] = useState<string | null>(null);
 
   // Authentication check
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
       router.push('/login');
+    } else {
+      // Get seller ID from token
+      try {
+        const tokenData = JSON.parse(atob(token.split('.')[1]));
+        setSellerId(tokenData.sellerId || "default-seller");
+        console.log("Using seller ID from token:", tokenData.sellerId);
+      } catch (error) {
+        console.error("Error parsing token:", error);
+        setSellerId("default-seller");
+      }
     }
   }, [router]);
 
@@ -41,13 +52,19 @@ export default function FunilPage() {
   // Placeholder for active panel - always funil on this page
   const [activePanel, setActivePanel] = useState<"chat" | "funil">("funil");
 
-  // For seller ID - in a real app this might come from auth context
-  const sellerId = "default-seller";
-
   const handleLogout = () => {
     logout();
     router.push('/login');
   };
+
+  // Show loading state while fetching sellerId
+  if (!sellerId) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className={`${isLightTheme ? "bg-gray-50 text-black" : "bg-[#0b141a] text-[#e9edef]"} flex flex-col h-screen w-screen overflow-hidden`}>

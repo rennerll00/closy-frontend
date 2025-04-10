@@ -43,7 +43,15 @@ export default function FunilPanel({ isLightTheme, isMobile, sellerId, handleBac
     is_passive: null,
     startDate: null,
     endDate: null,
-    period: 'last7days',
+    period: 'all',
+  });
+
+  // Add a separate state for temporary filter values
+  const [tempFilterParams, setTempFilterParams] = useState<FilterParams>({
+    is_passive: null,
+    startDate: null,
+    endDate: null,
+    period: 'all',
   });
 
   // Parse URL params on initial load
@@ -52,22 +60,38 @@ export default function FunilPanel({ isLightTheme, isMobile, sellerId, handleBac
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
-    setFilterParams(prev => ({
-      ...prev,
+    console.log('URL params detected:', { is_passive, startDate, endDate });
+
+    const newParams = {
       is_passive: is_passive === 'true' ? true : is_passive === 'false' ? false : null,
       startDate: startDate || null,
       endDate: endDate || null,
-      period: startDate && endDate ? 'custom' : prev.period,
-    }));
+      period: startDate && endDate ? 'custom' : 'all',
+    };
+
+    console.log('New filter params set from URL:', newParams);
+    setFilterParams(newParams);
+    setTempFilterParams(newParams);
   }, [searchParams]);
 
   const fetchData = async () => {
     try {
       setIsRefreshing(true);
-      // In the future we would pass the filter params to the API
-      const data = await getFunilAnalytics(sellerId);
+      // Reset bars before fetching new data
+      setShowBars(false);
+      // Pass the filter params to the API
+      console.log('Fetching data with filters:', JSON.stringify(filterParams));
+      const data = await getFunilAnalytics(sellerId, {
+        is_passive: filterParams.is_passive,
+        startDate: filterParams.startDate,
+        endDate: filterParams.endDate
+      });
+      console.log('Received funnel data:', JSON.stringify(data));
+
+      // Set data and then show bars after a short delay
       setFunilData(data);
-      setTimeout(() => setShowBars(true), 100);
+      // Force reflow before showing bars
+      setTimeout(() => setShowBars(true), 300);
     } catch (error) {
       console.error('Error fetching funnel data:', error);
     } finally {
@@ -76,13 +100,18 @@ export default function FunilPanel({ isLightTheme, isMobile, sellerId, handleBac
     }
   };
 
+  // Only fetch data when filterParams change, not tempFilterParams
   useEffect(() => {
     fetchData();
-  }, [sellerId, filterParams.is_passive, filterParams.startDate, filterParams.endDate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sellerId, filterParams]);
 
   const handleRefresh = () => {
     setShowBars(false);
-    fetchData();
+    // Force reflow
+    setTimeout(() => {
+      fetchData();
+    }, 100);
   };
 
   const calculatePercentage = (current: number, total: number) => {
@@ -102,7 +131,7 @@ export default function FunilPanel({ isLightTheme, isMobile, sellerId, handleBac
   };
 
   const handleDateChange = (field: 'startDate' | 'endDate', value: string) => {
-    setFilterParams(prev => ({
+    setTempFilterParams(prev => ({
       ...prev,
       [field]: value,
       period: 'custom'
@@ -133,8 +162,9 @@ export default function FunilPanel({ isLightTheme, isMobile, sellerId, handleBac
       startDate = formatDate(ninetyDaysAgo);
       endDate = formatDate(today);
     }
+    // For 'all' or 'custom', dates will remain null unless custom dates are provided
 
-    setFilterParams(prev => ({
+    setTempFilterParams(prev => ({
       ...prev,
       startDate,
       endDate,
@@ -142,31 +172,44 @@ export default function FunilPanel({ isLightTheme, isMobile, sellerId, handleBac
     }));
   };
 
+  // Handle selection for is_passive radio button
+  const handleOriginChange = (value: boolean | null) => {
+    setTempFilterParams(prev => ({
+      ...prev,
+      is_passive: value
+    }));
+  };
+
   const handleApplyFilters = () => {
+    // Reset bars and UI state
+    setShowBars(false);
+    setFunilData(null);
+    setLoading(true);
+
+    // Apply temp filters to main filters
+    setFilterParams(tempFilterParams);
+
     // Update URL with filter params
     const params = new URLSearchParams();
 
-    if (filterParams.is_passive !== null) {
-      params.set('is_passive', filterParams.is_passive.toString());
+    // Only add is_passive if it's not null (not "Todos")
+    if (tempFilterParams.is_passive !== null) {
+      params.set('is_passive', tempFilterParams.is_passive.toString());
     }
 
-    if (filterParams.startDate) {
-      params.set('startDate', filterParams.startDate);
-    }
+    // Only add date params if not "Todo o Período"
+    if (tempFilterParams.period !== 'all') {
+      if (tempFilterParams.startDate) {
+        params.set('startDate', tempFilterParams.startDate);
+      }
 
-    if (filterParams.endDate) {
-      params.set('endDate', filterParams.endDate);
+      if (tempFilterParams.endDate) {
+        params.set('endDate', tempFilterParams.endDate);
+      }
     }
 
     router.push(`/funil?${params.toString()}`);
     setShowFilters(false);
-  };
-
-  const handleTogglePassiveFilter = (value: boolean | null) => {
-    setFilterParams(prev => ({
-      ...prev,
-      is_passive: prev.is_passive === value ? null : value
-    }));
   };
 
   if (loading) {
@@ -295,7 +338,7 @@ export default function FunilPanel({ isLightTheme, isMobile, sellerId, handleBac
                       is_passive: null,
                       startDate: null,
                       endDate: null,
-                      period: 'last7days'
+                      period: 'all'
                     });
                     router.push('/funil');
                   }}
@@ -310,7 +353,7 @@ export default function FunilPanel({ isLightTheme, isMobile, sellerId, handleBac
           )}
 
           {/* Funnel Visualization */}
-          <div className="max-w-4xl mx-auto space-y-6 mb-8">
+          <div className="max-w-4xl mx-auto space-y-6 mb-8 funnel-container">
             {/* Active/Passive Split Bar */}
             <div className="mb-4">
               <div className="mb-3 text-center">
@@ -389,68 +432,71 @@ export default function FunilPanel({ isLightTheme, isMobile, sellerId, handleBac
               </div>
             </div>
 
-            <div className="mb-3 text-center">
-              <h3 className="text-lg font-medium">Funil de Vendas</h3>
-            </div>
+            {/* Re-render the funnel when data changes */}
+            <div key={`funnel-${JSON.stringify(funilData)}-${showBars ? 'visible' : 'hidden'}`}>
+              <div className="mb-3 text-center">
+                <h3 className="text-lg font-medium">Funil de Vendas</h3>
+              </div>
 
-            {/* Regular Funnel Steps */}
-            {funnelSteps.map((step, index) => {
-              const percentage = calculatePercentage(step.value, funilData?.totalConversations || 1);
-              const color = getColorForStep(index);
-              // Ensure minimum display width for visibility
-              const displayPercentage = Math.max(percentage, 5);
-              // Add indicator for very small values that are being scaled up
-              const isScaledUp = percentage > 0 && percentage < 5;
-              // Determine if this is a small bar (less than 15%)
-              const isSmallBar = percentage < 15;
+              {/* Regular Funnel Steps */}
+              {funnelSteps.map((step, index) => {
+                const percentage = calculatePercentage(step.value, funilData?.totalConversations || 1);
+                const color = getColorForStep(index);
+                // Ensure minimum display width for visibility
+                const displayPercentage = Math.max(percentage, 5);
+                // Add indicator for very small values that are being scaled up
+                const isScaledUp = percentage > 0 && percentage < 5;
+                // Determine if this is a small bar (less than 15%)
+                const isSmallBar = percentage < 15;
 
-              return (
-                <div key={index} className="mb-5">
-                  <div className="flex-1 relative h-20">
-                    {/* Text label for small bars - positioned outside on the left */}
-                    {isSmallBar && (
-                      <div
-                        className={`absolute left-[calc(50%-${displayPercentage/2}%-120px)] top-1/2 -translate-y-1/2 z-10 flex flex-col items-end pr-2`}
-                        style={{ width: '120px' }}
-                      >
-                        <div className="text-lg font-bold">
-                          {showBars ? (showPercentage ? `${percentage}%` : step.value.toLocaleString()) : ''}
-                          {isScaledUp && <span className="text-xs ml-1">↑</span>}
-                        </div>
-                        <div className="text-xs mt-1 opacity-90">
-                          {step.title}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* The actual bar */}
-                    <div
-                      className={`absolute left-1/2 h-full rounded-md ${color} transition-all duration-1000 ease-out flex flex-col ${isSmallBar ? 'items-end pr-3' : 'items-center'} justify-center shadow-md ${isScaledUp ? 'border border-white' : ''}`}
-                      style={{
-                        width: showBars ? `${displayPercentage}%` : '0%',
-                        transform: `translateX(-50%)`,
-                        maxWidth: '100%',
-                        opacity: showBars ? 1 : 0,
-                        minWidth: percentage > 0 ? '30px' : '0px'
-                      }}
-                    >
-                      {/* Only show text inside the bar if it's not small */}
-                      {!isSmallBar && (
-                        <>
-                          <div className={`text-lg ${isLightTheme ? 'text-black' : 'text-white'} font-bold`}>
+                return (
+                  <div key={index} className="mb-5">
+                    <div className="flex-1 relative h-20">
+                      {/* Text label for small bars - positioned outside on the left */}
+                      {isSmallBar && (
+                        <div
+                          className={`absolute left-[calc(50%-${displayPercentage/2}%-120px)] top-1/2 -translate-y-1/2 z-10 flex flex-col items-end pr-2`}
+                          style={{ width: '120px' }}
+                        >
+                          <div className="text-lg font-bold">
                             {showBars ? (showPercentage ? `${percentage}%` : step.value.toLocaleString()) : ''}
                             {isScaledUp && <span className="text-xs ml-1">↑</span>}
                           </div>
-                          <div className={`text-xs ${isLightTheme ? 'text-black' : 'text-white'} mt-1 opacity-90 px-2`}>
+                          <div className="text-xs mt-1 opacity-90">
                             {step.title}
                           </div>
-                        </>
+                        </div>
                       )}
+
+                      {/* The actual bar */}
+                      <div
+                        className={`absolute left-1/2 h-full rounded-md ${color} transition-all duration-1000 ease-out flex flex-col ${isSmallBar ? 'items-end pr-3' : 'items-center'} justify-center shadow-md ${isScaledUp ? 'border border-white' : ''}`}
+                        style={{
+                          width: showBars ? `${displayPercentage}%` : '0%',
+                          transform: `translateX(-50%)`,
+                          maxWidth: '100%',
+                          opacity: showBars ? 1 : 0,
+                          minWidth: percentage > 0 ? '30px' : '0px'
+                        }}
+                      >
+                        {/* Only show text inside the bar if it's not small */}
+                        {!isSmallBar && (
+                          <>
+                            <div className={`text-lg ${isLightTheme ? 'text-black' : 'text-white'} font-bold`}>
+                              {showBars ? (showPercentage ? `${percentage}%` : step.value.toLocaleString()) : ''}
+                              {isScaledUp && <span className="text-xs ml-1">↑</span>}
+                            </div>
+                            <div className={`text-xs ${isLightTheme ? 'text-black' : 'text-white'} mt-1 opacity-90 px-2`}>
+                              {step.title}
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
 
           {/* Summary Cards */}
@@ -504,7 +550,7 @@ export default function FunilPanel({ isLightTheme, isMobile, sellerId, handleBac
                   <h3 className="text-sm font-medium mb-2">Período</h3>
                   <div className="space-y-2">
                     <select
-                      value={filterParams.period}
+                      value={tempFilterParams.period}
                       onChange={handlePeriodChange}
                       className={`w-full p-2 rounded-md ${
                         isLightTheme
@@ -512,19 +558,20 @@ export default function FunilPanel({ isLightTheme, isMobile, sellerId, handleBac
                           : "bg-[#2a3942] border border-[#374248]"
                       }`}
                     >
+                      <option value="all">Todo o Período</option>
                       <option value="last7days">Últimos 7 dias</option>
                       <option value="last30days">Últimos 30 dias</option>
                       <option value="last90days">Últimos 90 dias</option>
                       <option value="custom">Personalizado</option>
                     </select>
 
-                    {filterParams.period === 'custom' && (
+                    {tempFilterParams.period === 'custom' && (
                       <div className="mt-2 space-y-2">
                         <div>
                           <label className="block text-xs mb-1">Data Inicial</label>
                           <input
                             type="date"
-                            value={filterParams.startDate || ''}
+                            value={tempFilterParams.startDate || ''}
                             onChange={(e) => handleDateChange('startDate', e.target.value)}
                             className={`w-full p-2 rounded-md ${
                               isLightTheme
@@ -537,7 +584,7 @@ export default function FunilPanel({ isLightTheme, isMobile, sellerId, handleBac
                           <label className="block text-xs mb-1">Data Final</label>
                           <input
                             type="date"
-                            value={filterParams.endDate || ''}
+                            value={tempFilterParams.endDate || ''}
                             onChange={(e) => handleDateChange('endDate', e.target.value)}
                             className={`w-full p-2 rounded-md ${
                               isLightTheme
@@ -551,28 +598,61 @@ export default function FunilPanel({ isLightTheme, isMobile, sellerId, handleBac
                   </div>
                 </div>
 
-                {/* Origin Filter (Active/Passive) */}
+                {/* Origin Filter (Active/Passive) - Updated to radio buttons */}
                 <div>
                   <h3 className="text-sm font-medium mb-2">Origem</h3>
-                  <div className="space-y-2">
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        className="rounded"
-                        checked={filterParams.is_passive === true}
-                        onChange={() => handleTogglePassiveFilter(true)}
-                      />
-                      <span>Passivo</span>
-                    </label>
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        className="rounded"
-                        checked={filterParams.is_passive === false}
-                        onChange={() => handleTogglePassiveFilter(false)}
-                      />
-                      <span>Ativo</span>
-                    </label>
+                  <div className={`p-2 rounded-md grid grid-cols-3 gap-1 ${
+                    isLightTheme
+                      ? "bg-white border border-gray-300"
+                      : "bg-[#2a3942] border border-[#374248]"
+                  }`}>
+                    {/* "Todos" option */}
+                    <div
+                      onClick={() => handleOriginChange(null)}
+                      className={`py-2 px-3 rounded text-center cursor-pointer text-sm ${
+                        tempFilterParams.is_passive === null
+                          ? isLightTheme
+                            ? "bg-blue-500 text-white"
+                            : "bg-[#00a884] text-white"
+                          : isLightTheme
+                            ? "hover:bg-gray-100"
+                            : "hover:bg-[#374248]"
+                      }`}
+                    >
+                      Todos
+                    </div>
+
+                    {/* "Ativo" option */}
+                    <div
+                      onClick={() => handleOriginChange(false)}
+                      className={`py-2 px-3 rounded text-center cursor-pointer text-sm ${
+                        tempFilterParams.is_passive === false
+                          ? isLightTheme
+                            ? "bg-blue-500 text-white"
+                            : "bg-[#00a884] text-white"
+                          : isLightTheme
+                            ? "hover:bg-gray-100"
+                            : "hover:bg-[#374248]"
+                      }`}
+                    >
+                      Ativo
+                    </div>
+
+                    {/* "Passivo" option */}
+                    <div
+                      onClick={() => handleOriginChange(true)}
+                      className={`py-2 px-3 rounded text-center cursor-pointer text-sm ${
+                        tempFilterParams.is_passive === true
+                          ? isLightTheme
+                            ? "bg-blue-500 text-white"
+                            : "bg-[#00a884] text-white"
+                          : isLightTheme
+                            ? "hover:bg-gray-100"
+                            : "hover:bg-[#374248]"
+                      }`}
+                    >
+                      Passivo
+                    </div>
                   </div>
                 </div>
 
@@ -595,16 +675,6 @@ export default function FunilPanel({ isLightTheme, isMobile, sellerId, handleBac
 
             {/* Filters Footer */}
             <div className={`${isLightTheme ? "bg-gray-200" : "bg-[#202c33]"} p-4 flex justify-end gap-2 ${isMobile ? "pb-4" : ""}`}>
-              <button
-                className={`px-4 py-2 rounded-md ${
-                  isLightTheme
-                    ? "bg-gray-300 hover:bg-gray-400"
-                    : "bg-[#374248] hover:bg-[#4a5c66]"
-                }`}
-                onClick={() => setShowFilters(false)}
-              >
-                Cancelar
-              </button>
               <button
                 onClick={handleApplyFilters}
                 className={`px-4 py-2 rounded-md ${
