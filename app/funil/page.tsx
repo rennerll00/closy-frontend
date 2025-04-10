@@ -89,7 +89,7 @@ export default function FunilPage() {
         />
 
         {/* Content area */}
-        <div className="flex-1">
+        <div className={`flex-1 ${isMobile ? "pb-16" : ""}`}>
           <FunilPanel
             isLightTheme={isLightTheme}
             isMobile={isMobile}

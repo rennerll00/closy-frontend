@@ -320,14 +320,15 @@ export default function FunilPanel({ isLightTheme, isMobile, sellerId, handleBac
                 <div className="absolute left-0 h-full w-full flex">
                   {/* Passive Bar */}
                   <div
-                    className={`h-full bg-[#6D01EF] transition-all duration-1000 ease-out flex flex-col items-center justify-center ${isLightTheme ? 'text-black' : 'text-white'} font-medium`}
+                    className={`h-full bg-[#6D01EF] transition-all duration-1000 ease-out flex flex-col ${activePassivePercentages.passive < 15 ? 'pl-3' : 'items-center'} justify-center ${isLightTheme ? 'text-black' : 'text-white'} font-medium`}
                     style={{
                       width: showBars ? `${Math.max(activePassivePercentages.passive, 3)}%` : '0%',
                       opacity: showBars ? 1 : 0,
-                      minWidth: activePassivePercentages.passive > 0 ? '80px' : '0px'
+                      minWidth: activePassivePercentages.passive > 0 ? '30px' : '0px'
                     }}
                   >
-                    {showBars && (
+                    {/* Text for passive bar (only shown if bar is not small) */}
+                    {showBars && activePassivePercentages.passive >= 15 && (
                       <>
                         <div className="whitespace-nowrap text-lg font-bold">
                           {showPercentage
@@ -338,16 +339,30 @@ export default function FunilPanel({ isLightTheme, isMobile, sellerId, handleBac
                       </>
                     )}
                   </div>
+
+                  {/* Text for passive bar if small (outside the bar) */}
+                  {showBars && activePassivePercentages.passive > 0 && activePassivePercentages.passive < 15 && (
+                    <div className="absolute left-[3%] top-1/2 -translate-y-1/2 flex flex-col z-10 pr-3">
+                      <div className="whitespace-nowrap text-lg font-bold">
+                        {showPercentage
+                          ? `${activePassivePercentages.passive}%`
+                          : funilData?.passiveConversations.toLocaleString()}
+                      </div>
+                      <div className="text-xs mt-1 opacity-90">Passivo</div>
+                    </div>
+                  )}
+
                   {/* Active Bar */}
                   <div
-                    className={`h-full bg-[#FF1D7C] transition-all duration-1000 ease-out flex flex-col items-center justify-center ${isLightTheme ? 'text-black' : 'text-white'} font-medium`}
+                    className={`h-full bg-[#FF1D7C] transition-all duration-1000 ease-out flex flex-col ${activePassivePercentages.active < 15 ? 'items-start pl-3' : 'items-center'} justify-center ${isLightTheme ? 'text-black' : 'text-white'} font-medium`}
                     style={{
                       width: showBars ? `${Math.max(activePassivePercentages.active, 3)}%` : '0%',
                       opacity: showBars ? 1 : 0,
-                      minWidth: activePassivePercentages.active > 0 ? '80px' : '0px'
+                      minWidth: activePassivePercentages.active > 0 ? '30px' : '0px'
                     }}
                   >
-                    {showBars && (
+                    {/* Text for active bar (only shown if bar is not small) */}
+                    {showBars && activePassivePercentages.active >= 15 && (
                       <>
                         <div className="whitespace-nowrap text-lg font-bold">
                           {showPercentage
@@ -358,12 +373,24 @@ export default function FunilPanel({ isLightTheme, isMobile, sellerId, handleBac
                       </>
                     )}
                   </div>
+
+                  {/* Text for active bar if small (outside the bar) */}
+                  {showBars && activePassivePercentages.active > 0 && activePassivePercentages.active < 15 && (
+                    <div className="absolute right-[3%] top-1/2 -translate-y-1/2 flex flex-col z-10 items-end">
+                      <div className="whitespace-nowrap text-lg font-bold">
+                        {showPercentage
+                          ? `${activePassivePercentages.active}%`
+                          : funilData?.activeConversations.toLocaleString()}
+                      </div>
+                      <div className="text-xs mt-1 opacity-90">Ativo</div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
             <div className="mb-3 text-center">
-              <h3 className="text-lg font-medium">Etapas do Funil</h3>
+              <h3 className="text-lg font-medium">Funil de Vendas</h3>
             </div>
 
             {/* Regular Funnel Steps */}
@@ -374,27 +401,51 @@ export default function FunilPanel({ isLightTheme, isMobile, sellerId, handleBac
               const displayPercentage = Math.max(percentage, 5);
               // Add indicator for very small values that are being scaled up
               const isScaledUp = percentage > 0 && percentage < 5;
+              // Determine if this is a small bar (less than 15%)
+              const isSmallBar = percentage < 15;
 
               return (
                 <div key={index} className="mb-5">
                   <div className="flex-1 relative h-20">
+                    {/* Text label for small bars - positioned outside on the left */}
+                    {isSmallBar && (
+                      <div
+                        className={`absolute left-[calc(50%-${displayPercentage/2}%-120px)] top-1/2 -translate-y-1/2 z-10 flex flex-col items-end pr-2`}
+                        style={{ width: '120px' }}
+                      >
+                        <div className="text-lg font-bold">
+                          {showBars ? (showPercentage ? `${percentage}%` : step.value.toLocaleString()) : ''}
+                          {isScaledUp && <span className="text-xs ml-1">↑</span>}
+                        </div>
+                        <div className="text-xs mt-1 opacity-90">
+                          {step.title}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* The actual bar */}
                     <div
-                      className={`absolute left-1/2 h-full rounded-md ${color} transition-all duration-1000 ease-out flex flex-col items-center justify-center shadow-md ${isScaledUp ? 'border border-white' : ''}`}
+                      className={`absolute left-1/2 h-full rounded-md ${color} transition-all duration-1000 ease-out flex flex-col ${isSmallBar ? 'items-end pr-3' : 'items-center'} justify-center shadow-md ${isScaledUp ? 'border border-white' : ''}`}
                       style={{
                         width: showBars ? `${displayPercentage}%` : '0%',
                         transform: `translateX(-50%)`,
                         maxWidth: '100%',
                         opacity: showBars ? 1 : 0,
-                        minWidth: percentage > 0 ? '100px' : '0px'
+                        minWidth: percentage > 0 ? '30px' : '0px'
                       }}
                     >
-                      <div className={`text-lg ${isLightTheme ? 'text-black' : 'text-white'} font-bold`}>
-                        {showBars ? (showPercentage ? `${percentage}%` : step.value.toLocaleString()) : ''}
-                        {isScaledUp && <span className="text-xs ml-1">↑</span>}
-                      </div>
-                      <div className={`text-xs ${isLightTheme ? 'text-black' : 'text-white'} mt-1 opacity-90 px-2 text-center`}>
-                        {step.title}
-                      </div>
+                      {/* Only show text inside the bar if it's not small */}
+                      {!isSmallBar && (
+                        <>
+                          <div className={`text-lg ${isLightTheme ? 'text-black' : 'text-white'} font-bold`}>
+                            {showBars ? (showPercentage ? `${percentage}%` : step.value.toLocaleString()) : ''}
+                            {isScaledUp && <span className="text-xs ml-1">↑</span>}
+                          </div>
+                          <div className={`text-xs ${isLightTheme ? 'text-black' : 'text-white'} mt-1 opacity-90 px-2`}>
+                            {step.title}
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -543,7 +594,7 @@ export default function FunilPanel({ isLightTheme, isMobile, sellerId, handleBac
             </div>
 
             {/* Filters Footer */}
-            <div className={`${isLightTheme ? "bg-gray-200" : "bg-[#202c33]"} p-4 flex justify-end gap-2`}>
+            <div className={`${isLightTheme ? "bg-gray-200" : "bg-[#202c33]"} p-4 flex justify-end gap-2 ${isMobile ? "pb-4" : ""}`}>
               <button
                 className={`px-4 py-2 rounded-md ${
                   isLightTheme
