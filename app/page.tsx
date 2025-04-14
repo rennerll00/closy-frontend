@@ -372,11 +372,23 @@ export default function AdminPage() {
   }, []);
 
   // Theme state and toggle
-  const [isLightTheme, setIsLightTheme] = useState(true); // changed default to true
-  const toggleTheme = () => setIsLightTheme((prev) => !prev);
+  const [isLightTheme, setIsLightTheme] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('theme');
+      return savedTheme ? savedTheme === 'light' : true;
+    }
+    return true;
+  });
+  const toggleTheme = () => {
+    setIsLightTheme((prev) => {
+      const newTheme = !prev;
+      localStorage.setItem('theme', newTheme ? 'light' : 'dark');
+      return newTheme;
+    });
+  };
 
   // State to control which panel is shown - always chat on this page
-  const [activePanel, setActivePanel] = useState<"chat" | "funil">("chat");
+  const [activePanel, setActivePanel] = useState<"chat" | "funil" | "hots" | "last24">("chat");
 
   const showLeftPanel = !isMobile || (!activeChat && activePanel === "chat");
   const showRightPanel = !isMobile || !!activeChat;

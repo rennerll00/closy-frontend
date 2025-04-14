@@ -75,7 +75,7 @@ export default function FunilPanel({ isLightTheme, isMobile, sellerId, userRole,
       // Fetch sellers from the API
       getSellersByEcommerce(ecommerceId)
         .then(data => {
-          // Add the "all" option at the beginning
+          // Create seller options array
           const sellerOptions = [
             { id: 'all', name: 'Todos os vendedores' },
             // Map received sellers to the correct format
@@ -134,20 +134,17 @@ export default function FunilPanel({ isLightTheme, isMobile, sellerId, userRole,
       // Pass the filter params to the API
       console.log('Fetching data with filters:', JSON.stringify(filterParams));
 
-      // Determine which sellerId to pass to the API
-      const apiSellerId = isAdmin && filterParams.sellerId === 'all'
-        ? undefined  // For "all sellers" we pass undefined to get all data
-        : filterParams.sellerId || sellerId;  // Otherwise use the selected or default seller
-
-      const data = await getFunilAnalytics(apiSellerId, {
+      // Use the simplified API call
+      const data = await getFunilAnalytics({
         is_passive: filterParams.is_passive,
         startDate: filterParams.startDate,
-        endDate: filterParams.endDate
+        endDate: filterParams.endDate,
+        sellerId: isAdmin && filterParams.sellerId !== 'all' ? filterParams.sellerId : undefined
       });
-      console.log('Received funnel data:', JSON.stringify(data));
 
-      // Set data and then show bars after a short delay
+      console.log('Received funnel data:', JSON.stringify(data));
       setFunilData(data);
+
       // Force reflow before showing bars
       setTimeout(() => setShowBars(true), 300);
     } catch (error) {

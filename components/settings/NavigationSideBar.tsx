@@ -1,10 +1,10 @@
 import React from "react";
-import { MessageSquare, Sun, Moon, LogOut, TrendingUp } from "lucide-react";
+import { MessageSquare, Sun, Moon, LogOut, TrendingUp, Flame, Clock } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 
 interface NavigationSideBarProps {
-  activePanel: "chat" | "funil";
-  setActivePanel: (panel: "chat" | "funil") => void;
+  activePanel: "chat" | "funil" | "hots" | "last24";
+  setActivePanel: (panel: "chat" | "funil" | "hots" | "last24") => void;
   isMobile: boolean;
   isLightTheme: boolean;
   toggleTheme: () => void;
@@ -12,7 +12,6 @@ interface NavigationSideBarProps {
 }
 
 export default function NavigationSideBar({
-  activePanel,
   setActivePanel,
   isMobile,
   isLightTheme,
@@ -23,10 +22,16 @@ export default function NavigationSideBar({
   const pathname = usePathname();
 
   const isOnFunilPage = pathname === "/funil";
+  const isOnHotsPage = pathname === "/hots";
+  const isOnLast24Page = pathname === "/last24";
 
-  const handleNavigation = (panel: "chat" | "funil") => {
+  const handleNavigation = (panel: "chat" | "funil" | "hots" | "last24") => {
     if (panel === "funil") {
       router.push("/funil");
+    } else if (panel === "hots") {
+      router.push("/hots");
+    } else if (panel === "last24") {
+      router.push("/last24");
     } else {
       // If already on home page, use the panel toggle
       if (pathname === "/") {
@@ -54,7 +59,7 @@ export default function NavigationSideBar({
         <button
           onClick={() => handleNavigation("chat")}
           className={`p-3 rounded-full transition-colors ${
-            !isOnFunilPage
+            !isOnFunilPage && !isOnHotsPage && !isOnLast24Page
               ? isLightTheme
                 ? "bg-blue-500 text-white"
                 : "bg-[#00a884] text-white"
@@ -81,6 +86,38 @@ export default function NavigationSideBar({
           title="Funil"
         >
           <TrendingUp size={24} />
+        </button>
+
+        <button
+          onClick={() => handleNavigation("hots")}
+          className={`p-3 rounded-full transition-colors ${
+            isOnHotsPage
+              ? isLightTheme
+                ? "bg-blue-500 text-white"
+                : "bg-[#00a884] text-white"
+              : isLightTheme
+              ? "text-gray-700 hover:bg-gray-300"
+              : "text-[#aebac1] hover:bg-[#202c33]"
+          }`}
+          title="Hots"
+        >
+          <Flame size={24} />
+        </button>
+
+        <button
+          onClick={() => handleNavigation("last24")}
+          className={`p-3 rounded-full transition-colors ${
+            isOnLast24Page
+              ? isLightTheme
+                ? "bg-blue-500 text-white"
+                : "bg-[#00a884] text-white"
+              : isLightTheme
+              ? "text-gray-700 hover:bg-gray-300"
+              : "text-[#aebac1] hover:bg-[#202c33]"
+          }`}
+          title="Last 24 Hours"
+        >
+          <Clock size={24} />
         </button>
 
         <button

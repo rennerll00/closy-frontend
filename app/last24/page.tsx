@@ -6,13 +6,12 @@ import Image from "next/image";
 import { LogOut } from "lucide-react";
 
 // Components
-import FunilPanel from "@/components/settings/FunilPanel";
 import NavigationSideBar from "@/components/settings/NavigationSideBar";
 
 // API functions
 import { logout } from "@/lib/api";
 
-export default function FunilPage() {
+export default function Last24Page() {
   const router = useRouter();
   const [sellerId, setSellerId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -30,11 +29,6 @@ export default function FunilPage() {
         setSellerId(tokenData.sellerId || "default-seller");
         setUserRole(tokenData.role || null);
         setEcommerceId(tokenData.ecommerceId || null);
-        console.log("Using token data:", {
-          sellerId: tokenData.sellerId,
-          userRole: tokenData.role,
-          ecommerceId: tokenData.ecommerceId
-        });
       } catch (error) {
         console.error("Error parsing token:", error);
         setSellerId("default-seller");
@@ -69,8 +63,8 @@ export default function FunilPage() {
     });
   };
 
-  // Placeholder for active panel - always funil on this page
-  const [activePanel, setActivePanel] = useState<"chat" | "funil" | "hots" | "last24">("funil");
+  // Placeholder for active panel - always last24 on this page
+  const [activePanel, setActivePanel] = useState<"chat" | "funil" | "hots" | "last24">("last24");
 
   const handleLogout = () => {
     logout();
@@ -113,7 +107,7 @@ export default function FunilPage() {
         </div>
       )}
 
-      {/* MAIN LAYOUT: Navigation + FunilPanel */}
+      {/* MAIN LAYOUT: Navigation + Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Navigation sidebar */}
         <NavigationSideBar
@@ -127,13 +121,16 @@ export default function FunilPage() {
 
         {/* Content area */}
         <div className={`flex-1 ${isMobile ? "pb-16" : ""}`}>
-          <FunilPanel
-            isLightTheme={isLightTheme}
-            isMobile={isMobile}
-            sellerId={sellerId}
-            userRole={userRole || undefined}
-            ecommerceId={ecommerceId || undefined}
-          />
+          <div className={`h-full flex items-center justify-center ${isLightTheme ? "text-gray-700" : "text-[#aebac1]"}`}>
+            <div className="text-center p-6">
+              <div className="mb-4 text-6xl flex justify-center">
+                🕒
+              </div>
+              <h1 className="text-2xl font-bold mb-2">Last 24 Hours</h1>
+              <p className="text-lg">View conversations from the last 24 hours that require your attention.</p>
+              <p className="text-sm mt-4 opacity-75">This feature is coming soon.</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
