@@ -35,8 +35,6 @@ interface FilterParams {
 
 export default function HotsPage() {
   const router = useRouter();
-  const [sellerId, setSellerId] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
   const [ecommerceId, setEcommerceId] = useState<string | null>(null);
   const [hotProductsData, setHotProductsData] = useState<HotProductsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,12 +62,9 @@ export default function HotsPage() {
     } else {
       try {
         const tokenData = JSON.parse(atob(token.split('.')[1]));
-        setSellerId(tokenData.sellerId || "default-seller");
-        setUserRole(tokenData.role || null);
         setEcommerceId(tokenData.ecommerceId || null);
       } catch (error) {
         console.error("Error parsing token:", error);
-        setSellerId("default-seller");
       }
     }
   }, [router]);

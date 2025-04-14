@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { LogOut, Filter } from "lucide-react";
+import { LogOut } from "lucide-react";
 
 // Components
 import NavigationSideBar from "@/components/settings/NavigationSideBar";
@@ -32,7 +32,6 @@ export default function Last24Page() {
   const [last24Data, setLast24Data] = useState<Last24Data | null>(null);
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [selectedSeller, setSelectedSeller] = useState<string>('all');
-  const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Authentication check
@@ -60,7 +59,7 @@ export default function Last24Page() {
         .then(data => {
           setSellers([
             { id: 'all', name: 'Todos os vendedores' },
-            ...data.map(seller => ({
+            ...data.map((seller: { id: string; name?: string }) => ({
               id: seller.id,
               name: seller.name || 'Vendedor sem nome'
             }))
