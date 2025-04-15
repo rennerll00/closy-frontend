@@ -12,8 +12,10 @@ import NavigationSideBar from "@/components/settings/NavigationSideBar";
 import { logout, getHotProducts } from "@/lib/api";
 
 interface Product {
+  id: string;
   title: string;
   price: number;
+  image: string | null;
   quantity: number;
   carts: number;
 }
@@ -317,19 +319,37 @@ export default function HotsPage() {
                     <tr className={`${
                       isLightTheme ? "bg-gray-50" : "bg-[#1f2c33]"
                     }`}>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produto</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Preço</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Quantidade</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Carrinhos</th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Produto</th>
+                      <th className="px-6 py-4 text-right text-sm font-medium text-gray-500 uppercase tracking-wider">Preço</th>
+                      <th className="px-6 py-4 text-right text-sm font-medium text-gray-500 uppercase tracking-wider">Quantidade</th>
+                      <th className="px-6 py-4 text-right text-sm font-medium text-gray-500 uppercase tracking-wider">Carrinhos</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {hotProductsData?.topProducts.map((product, index) => (
-                      <tr key={index} className={index % 2 === 0 ? (isLightTheme ? "bg-white" : "bg-[#202c33]") : (isLightTheme ? "bg-gray-50" : "bg-[#1f2c33]")}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">{product.title}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right">R$ {product.price.toFixed(2)}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right">{product.quantity}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right">{product.carts}</td>
+                      <tr key={product.id} className={index % 2 === 0 ? (isLightTheme ? "bg-white" : "bg-[#202c33]") : (isLightTheme ? "bg-gray-50" : "bg-[#1f2c33]")}>
+                        <td className="px-6 py-6 whitespace-nowrap text-base">
+                          <div className="flex items-center">
+                            {product.image && (
+                              <div className="flex-shrink-0 h-20 w-20 mr-4">
+                                <Image
+                                  src={product.image}
+                                  alt={product.title}
+                                  width={80}
+                                  height={80}
+                                  className="h-20 w-20 rounded-md object-cover"
+                                  unoptimized
+                                />
+                              </div>
+                            )}
+                            <div className="ml-0">
+                              {product.title}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-6 whitespace-nowrap text-base text-right">R$ {product.price.toFixed(2)}</td>
+                        <td className="px-6 py-6 whitespace-nowrap text-base text-right">{product.quantity}</td>
+                        <td className="px-6 py-6 whitespace-nowrap text-base text-right">{product.carts}</td>
                       </tr>
                     ))}
                   </tbody>
