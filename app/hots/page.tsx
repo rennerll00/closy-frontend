@@ -295,7 +295,7 @@ export default function HotsPage() {
             </div>
 
             {/* Metrics Cards */}
-            <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
               {hotProductsData?.metrics && [
                 filterParams.type === 'cart'
                   ? { title: "Ticket Médio", value: `R$ ${hotProductsData.metrics.averageTicket.toFixed(2)}` }
@@ -311,12 +311,12 @@ export default function HotsPage() {
               ].map((metric, index) => (
                 <div
                   key={index}
-                  className={`p-6 rounded-lg shadow-sm ${
+                  className={`p-4 md:p-6 rounded-lg shadow-sm ${
                     isLightTheme ? "bg-white" : "bg-[#202c33]"
                   }`}
                 >
-                  <div className="text-sm text-gray-500 mb-1">{metric.title}</div>
-                  <div className="text-3xl font-bold">{metric.value}</div>
+                  <div className="text-xs md:text-sm text-gray-500 mb-1">{metric.title}</div>
+                  <div className="text-xl md:text-3xl font-bold">{metric.value}</div>
                 </div>
               ))}
             </div>
@@ -345,57 +345,108 @@ export default function HotsPage() {
               <div className={`rounded-lg shadow-sm overflow-hidden ${
                 isLightTheme ? "bg-white" : "bg-[#202c33]"
               }`}>
-
-                <table className="w-full">
-                  <thead>
-                    <tr className={`${
-                      isLightTheme ? "bg-gray-50" : "bg-[#1f2c33]"
-                    }`}>
-                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Produto</th>
-                      <th className="px-6 py-4 text-right text-sm font-medium text-gray-500 uppercase tracking-wider">Preço</th>
-                      <th className="px-6 py-4 text-right text-sm font-medium text-gray-500 uppercase tracking-wider">
-                        {filterParams.type === 'cart' ? 'Quantidade' : 'Visualizações'}
-                      </th>
-                      {filterParams.type === 'cart' && (
-                        <th className="px-6 py-4 text-right text-sm font-medium text-gray-500 uppercase tracking-wider">Carrinhos</th>
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {hotProductsData?.topProducts.map((product, index) => (
-                      <tr key={product.id} className={index % 2 === 0 ? (isLightTheme ? "bg-white" : "bg-[#202c33]") : (isLightTheme ? "bg-gray-50" : "bg-[#1f2c33]")}>
-                        <td className="px-6 py-6 whitespace-nowrap text-base">
-                          <div className="flex items-center">
-                            {product.image && (
-                              <div className="flex-shrink-0 h-20 w-20 mr-4">
-                                <Image
-                                  src={product.image}
-                                  alt={product.title}
-                                  width={80}
-                                  height={80}
-                                  className="h-20 w-20 rounded-md object-cover"
-                                  unoptimized
-                                />
-                              </div>
-                            )}
-                            <div className="ml-0">
-                              {product.title}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-6 whitespace-nowrap text-base text-right">
-                          R$ {filterParams.type === 'search'
-                            ? (product.price / 100).toFixed(2)
-                            : product.price.toFixed(2)}
-                        </td>
-                        <td className="px-6 py-6 whitespace-nowrap text-base text-right">{product.quantity}</td>
+                {/* Desktop Table View */}
+                <div className="hidden md:block">
+                  <table className="w-full">
+                    <thead>
+                      <tr className={`${
+                        isLightTheme ? "bg-gray-50" : "bg-[#1f2c33]"
+                      }`}>
+                        <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Produto</th>
+                        <th className="px-6 py-4 text-right text-sm font-medium text-gray-500 uppercase tracking-wider">Preço</th>
+                        <th className="px-6 py-4 text-right text-sm font-medium text-gray-500 uppercase tracking-wider">
+                          {filterParams.type === 'cart' ? 'Quantidade' : 'Visualizações'}
+                        </th>
                         {filterParams.type === 'cart' && (
-                          <td className="px-6 py-6 whitespace-nowrap text-base text-right">{product.carts}</td>
+                          <th className="px-6 py-4 text-right text-sm font-medium text-gray-500 uppercase tracking-wider">Carrinhos</th>
                         )}
                       </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {hotProductsData?.topProducts.map((product, index) => (
+                        <tr key={product.id} className={index % 2 === 0 ? (isLightTheme ? "bg-white" : "bg-[#202c33]") : (isLightTheme ? "bg-gray-50" : "bg-[#1f2c33]")}>
+                          <td className="px-6 py-6 whitespace-nowrap text-base">
+                            <div className="flex items-center">
+                              {product.image && (
+                                <div className="flex-shrink-0 h-20 w-20 mr-4">
+                                  <Image
+                                    src={product.image}
+                                    alt={product.title}
+                                    width={80}
+                                    height={80}
+                                    className="h-20 w-20 rounded-md object-cover"
+                                    unoptimized
+                                  />
+                                </div>
+                              )}
+                              <div className="ml-0">
+                                {product.title}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-6 whitespace-nowrap text-base text-right">
+                            R$ {(product.price).toFixed(2)}
+                          </td>
+                          <td className="px-6 py-6 whitespace-nowrap text-base text-right">{product.quantity}</td>
+                          {filterParams.type === 'cart' && (
+                            <td className="px-6 py-6 whitespace-nowrap text-base text-right">{product.carts}</td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden">
+                  <div className="space-y-4 p-4">
+                    {hotProductsData?.topProducts.map((product) => (
+                      <div
+                        key={product.id}
+                        className={`p-4 rounded-lg ${
+                          isLightTheme
+                            ? "bg-white border border-gray-200"
+                            : "bg-[#202c33] border border-[#2a3942]"
+                        }`}
+                      >
+                        <div className="flex items-start space-x-3">
+                          {product.image && (
+                            <Image
+                              src={product.image}
+                              alt={product.title}
+                              width={70}
+                              height={70}
+                              className="h-[70px] w-[70px] rounded-md object-cover flex-shrink-0"
+                              unoptimized
+                            />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium mb-1 line-clamp-2">{product.title}</p>
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs mt-2">
+                              <p className="font-semibold">
+                                R$ {filterParams.type === 'search'
+                                  ? (product.price / 100).toFixed(2)
+                                  : product.price.toFixed(2)}
+                              </p>
+                              <p>
+                                <span className="text-gray-500 mr-1">
+                                  {filterParams.type === 'cart' ? 'Qtd:' : 'Views:'}
+                                </span>
+                                {product.quantity}
+                              </p>
+                              {filterParams.type === 'cart' && (
+                                <p>
+                                  <span className="text-gray-500 mr-1">Carrinhos:</span>
+                                  {product.carts}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
