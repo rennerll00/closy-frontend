@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { LogOut, Filter, X } from "lucide-react";
+import { LogOut, Filter, X, ShoppingCart, Search } from "lucide-react";
 
 // Components
 import NavigationSideBar from "@/components/settings/NavigationSideBar";
@@ -33,6 +33,7 @@ interface FilterParams {
   startDate: string | null;
   endDate: string | null;
   period: string;
+  type: 'cart' | 'search';
 }
 
 export default function HotsPage() {
@@ -47,6 +48,7 @@ export default function HotsPage() {
     startDate: null,
     endDate: null,
     period: 'all',
+    type: 'cart'
   });
 
   // Add a separate state for temporary filter values
@@ -54,6 +56,7 @@ export default function HotsPage() {
     startDate: null,
     endDate: null,
     period: 'all',
+    type: 'cart'
   });
 
   // Authentication check
@@ -77,7 +80,8 @@ export default function HotsPage() {
       setLoading(true);
       getHotProducts({
         startDate: filterParams.startDate,
-        endDate: filterParams.endDate
+        endDate: filterParams.endDate,
+        type: filterParams.type
       })
         .then(data => {
           setHotProductsData(data);
@@ -293,9 +297,17 @@ export default function HotsPage() {
             {/* Metrics Cards */}
             <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
               {hotProductsData?.metrics && [
-                { title: "Ticket Médio", value: `R$ ${hotProductsData.metrics.averageTicket.toFixed(2)}` },
-                { title: "Peças por Carrinho", value: hotProductsData.metrics.averagePieces.toFixed(1) },
-                { title: "Total de Carrinhos", value: hotProductsData.metrics.totalCarts }
+                filterParams.type === 'cart'
+                  ? { title: "Ticket Médio", value: `R$ ${hotProductsData.metrics.averageTicket.toFixed(2)}` }
+                  : { title: "Visualizações de Produtos", value: Object.values(hotProductsData.topProducts).reduce((sum, p) => sum + p.quantity, 0) },
+                {
+                  title: filterParams.type === 'cart' ? "Peças por Carrinho" : "Produtos por Busca",
+                  value: hotProductsData.metrics.averagePieces.toFixed(1)
+                },
+                {
+                  title: filterParams.type === 'cart' ? "Total de Carrinhos" : "Total de Buscas",
+                  value: hotProductsData.metrics.totalCarts
+                }
               ].map((metric, index) => (
                 <div
                   key={index}
@@ -309,11 +321,31 @@ export default function HotsPage() {
               ))}
             </div>
 
+            {/* Table Title */}
+            <div className={`px-6 py-4 border-b ${
+              isLightTheme ? "border-gray-200" : "border-[#2a3942]"
+            }`}>
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                {filterParams.type === 'cart' ? (
+                  <>
+                    <ShoppingCart className="h-6 w-6" />
+                    <span>Adicionados ao Carrinho</span>
+                  </>
+                ) : (
+                  <>
+                    <Search className="h-6 w-6" />
+                    <span>Apareceu nas Pesquisas</span>
+                  </>
+                )}
+              </h2>
+            </div>
+
             {/* Products Table */}
             <div className="p-6 flex-1 overflow-auto">
               <div className={`rounded-lg shadow-sm overflow-hidden ${
                 isLightTheme ? "bg-white" : "bg-[#202c33]"
               }`}>
+
                 <table className="w-full">
                   <thead>
                     <tr className={`${
@@ -321,8 +353,12 @@ export default function HotsPage() {
                     }`}>
                       <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Produto</th>
                       <th className="px-6 py-4 text-right text-sm font-medium text-gray-500 uppercase tracking-wider">Preço</th>
-                      <th className="px-6 py-4 text-right text-sm font-medium text-gray-500 uppercase tracking-wider">Quantidade</th>
-                      <th className="px-6 py-4 text-right text-sm font-medium text-gray-500 uppercase tracking-wider">Carrinhos</th>
+                      <th className="px-6 py-4 text-right text-sm font-medium text-gray-500 uppercase tracking-wider">
+                        {filterParams.type === 'cart' ? 'Quantidade' : 'Visualizações'}
+                      </th>
+                      {filterParams.type === 'cart' && (
+                        <th className="px-6 py-4 text-right text-sm font-medium text-gray-500 uppercase tracking-wider">Carrinhos</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -347,9 +383,15 @@ export default function HotsPage() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-6 whitespace-nowrap text-base text-right">R$ {product.price.toFixed(2)}</td>
+                        <td className="px-6 py-6 whitespace-nowrap text-base text-right">
+                          R$ {filterParams.type === 'search'
+                            ? (product.price / 100).toFixed(2)
+                            : product.price.toFixed(2)}
+                        </td>
                         <td className="px-6 py-6 whitespace-nowrap text-base text-right">{product.quantity}</td>
-                        <td className="px-6 py-6 whitespace-nowrap text-base text-right">{product.carts}</td>
+                        {filterParams.type === 'cart' && (
+                          <td className="px-6 py-6 whitespace-nowrap text-base text-right">{product.carts}</td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -365,7 +407,7 @@ export default function HotsPage() {
             className={`${
               isMobile
                 ? "w-full"
-                : "w-64 border-l"
+                : "w-80 border-l"
             } ${isLightTheme ? "bg-white border-gray-300" : "bg-[#111b21] border-[#222d34]"} flex flex-col`}
           >
             {/* Filters Header */}
@@ -386,6 +428,51 @@ export default function HotsPage() {
             {/* Filters Content */}
             <div className="flex-1 p-4 overflow-y-auto">
               <div className="space-y-6">
+                {/* Product Type Filter */}
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Tipo de Análise</h3>
+                  <div className="space-y-2">
+                    <div className={`flex items-center rounded-md overflow-hidden ${
+                      isLightTheme ? "bg-gray-200" : "bg-[#2a3942]"
+                    }`}>
+                      <button
+                        onClick={() => setTempFilterParams(prev => ({ ...prev, type: 'cart' }))}
+                        className={`flex-1 px-4 py-2 text-sm transition-colors ${
+                          tempFilterParams.type === 'cart'
+                            ? isLightTheme
+                              ? "bg-blue-500 text-white"
+                              : "bg-[#00a884] text-white"
+                            : ""
+                        }`}
+                      >
+                        Carrinho
+                      </button>
+                      <button
+                        onClick={() => setTempFilterParams(prev => ({ ...prev, type: 'search' }))}
+                        className={`flex-1 px-4 py-2 text-sm transition-colors ${
+                          tempFilterParams.type === 'search'
+                            ? isLightTheme
+                              ? "bg-blue-500 text-white"
+                              : "bg-[#00a884] text-white"
+                            : ""
+                        }`}
+                      >
+                        Buscados
+                      </button>
+                    </div>
+                    <div className={`p-3 text-xs rounded-md ${
+                      isLightTheme ? "bg-blue-50 text-blue-800" : "bg-[#182229] text-[#8696a0]"
+                    }`}>
+                      <p className="mb-2">
+                        <strong>Carrinho:</strong> Mostra produtos que foram adicionados aos carrinhos dos clientes.
+                      </p>
+                      <p>
+                        <strong>Buscados:</strong> Mostra produtos que foram exibidos durante as buscas, mesmo que não tenham sido adicionados ao carrinho. Cada produto é contado apenas uma vez por conversa.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Date Range Filter */}
                 <div>
                   <h3 className="text-sm font-medium mb-2">Período</h3>
