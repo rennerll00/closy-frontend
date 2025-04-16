@@ -273,25 +273,45 @@ export default function HotsPage() {
         />
 
         {/* Content area */}
-        <div className={`flex-1 ${isMobile ? "pb-16" : ""}`}>
-          <div className="h-full flex flex-col">
-            {/* Header */}
-            <div className={`${isLightTheme ? "bg-white" : "bg-[#202c33]"} p-4 flex items-center justify-between border-b border-[#222d34]`}>
-              <h1 className="text-xl font-semibold">Produtos em Alta</h1>
-              <div className="flex items-center gap-2">
-                {/* Filter Button */}
-                <button
-                  onClick={() => setShowFilters(!showFilters)}
-                  className={`p-2 rounded-full transition-colors ${
-                    isLightTheme
-                      ? "hover:bg-gray-300 text-gray-700"
-                      : "hover:bg-[#374248] text-[#aebac1]"
-                  }`}
-                  title="Filtros"
-                >
-                  <Filter className="h-5 w-5" />
-                </button>
-              </div>
+        <div className="flex-1 h-full flex flex-col overflow-hidden">
+          {/* Header */}
+          <div className={`${isLightTheme ? "bg-white" : "bg-[#202c33]"} p-4 flex items-center justify-between border-b border-[#222d34] sticky top-0 z-10`}>
+            <h1 className="text-xl font-semibold">Produtos em Alta</h1>
+            <div className="flex items-center gap-2">
+              {/* Filter Button */}
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`p-2 rounded-full transition-colors ${
+                  isLightTheme
+                    ? "hover:bg-gray-300 text-gray-700"
+                    : "hover:bg-[#374248] text-[#aebac1]"
+                }`}
+                title="Filtros"
+              >
+                <Filter className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Main Content Scrollable Area */}
+          <div className="flex-1 overflow-y-auto">
+            {/* Table Title */}
+            <div className={`px-6 py-4 ${
+              isLightTheme ? "bg-white" : "bg-[#202c33]"
+            }`}>
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                {filterParams.type === 'cart' ? (
+                  <>
+                    <ShoppingCart className="h-6 w-6" />
+                    <span>Adicionados ao Carrinho</span>
+                  </>
+                ) : (
+                  <>
+                    <Search className="h-6 w-6" />
+                    <span>Apareceu nas Pesquisas</span>
+                  </>
+                )}
+              </h2>
             </div>
 
             {/* Metrics Cards */}
@@ -321,27 +341,8 @@ export default function HotsPage() {
               ))}
             </div>
 
-            {/* Table Title */}
-            <div className={`px-6 py-4 border-b ${
-              isLightTheme ? "border-gray-200" : "border-[#2a3942]"
-            }`}>
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                {filterParams.type === 'cart' ? (
-                  <>
-                    <ShoppingCart className="h-6 w-6" />
-                    <span>Adicionados ao Carrinho</span>
-                  </>
-                ) : (
-                  <>
-                    <Search className="h-6 w-6" />
-                    <span>Apareceu nas Pesquisas</span>
-                  </>
-                )}
-              </h2>
-            </div>
-
-            {/* Products Table */}
-            <div className="p-6 flex-1 overflow-auto">
+            {/* Products Table/List */}
+            <div className="px-4 md:px-6 pb-24 md:pb-6">
               <div className={`rounded-lg shadow-sm overflow-hidden ${
                 isLightTheme ? "bg-white" : "bg-[#202c33]"
               }`}>
@@ -399,14 +400,14 @@ export default function HotsPage() {
 
                 {/* Mobile Card View */}
                 <div className="md:hidden">
-                  <div className="space-y-4 p-4">
+                  <div className="divide-y divide-gray-200 dark:divide-gray-700">
                     {hotProductsData?.topProducts.map((product) => (
                       <div
                         key={product.id}
-                        className={`p-4 rounded-lg ${
+                        className={`p-4 ${
                           isLightTheme
-                            ? "bg-white border border-gray-200"
-                            : "bg-[#202c33] border border-[#2a3942]"
+                            ? ""
+                            : ""
                         }`}
                       >
                         <div className="flex items-start space-x-3">
@@ -414,19 +415,17 @@ export default function HotsPage() {
                             <Image
                               src={product.image}
                               alt={product.title}
-                              width={70}
-                              height={70}
-                              className="h-[70px] w-[70px] rounded-md object-cover flex-shrink-0"
+                              width={80}
+                              height={80}
+                              className="h-20 w-20 rounded-md object-cover flex-shrink-0"
                               unoptimized
                             />
                           )}
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium mb-1 line-clamp-2">{product.title}</p>
-                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs mt-2">
+                            <p className="text-sm font-medium mb-2">{product.title}</p>
+                            <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
                               <p className="font-semibold">
-                                R$ {filterParams.type === 'search'
-                                  ? (product.price / 100).toFixed(2)
-                                  : product.price.toFixed(2)}
+                                R$ {(product.price).toFixed(2)}
                               </p>
                               <p>
                                 <span className="text-gray-500 mr-1">
@@ -457,140 +456,150 @@ export default function HotsPage() {
           <div
             className={`${
               isMobile
-                ? "w-full"
-                : "w-80 border-l"
-            } ${isLightTheme ? "bg-white border-gray-300" : "bg-[#111b21] border-[#222d34]"} flex flex-col`}
+                ? "fixed inset-0 z-20 bg-black bg-opacity-50"
+                : "relative"
+            }`}
+            onClick={isMobile ? () => setShowFilters(false) : undefined}
           >
-            {/* Filters Header */}
-            <div className={`${isLightTheme ? "bg-gray-200" : "bg-[#202c33]"} p-4 flex items-center justify-between`}>
-              <h2 className="text-lg font-semibold">Filtros</h2>
-              <button
-                onClick={() => setShowFilters(false)}
-                className={`p-2 rounded-full transition-colors ${
-                  isLightTheme
-                    ? "hover:bg-gray-300 text-gray-700"
-                    : "hover:bg-[#374248] text-[#aebac1]"
-                }`}
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+            <div
+              className={`${
+                isMobile
+                  ? "absolute right-0 h-full w-80 max-w-[80%]"
+                  : "w-80 border-l"
+              } ${isLightTheme ? "bg-white border-gray-300" : "bg-[#111b21] border-[#222d34]"} flex flex-col h-full`}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Filters Header */}
+              <div className={`${isLightTheme ? "bg-gray-200" : "bg-[#202c33]"} p-4 flex items-center justify-between`}>
+                <h2 className="text-lg font-semibold">Filtros</h2>
+                <button
+                  onClick={() => setShowFilters(false)}
+                  className={`p-2 rounded-full transition-colors ${
+                    isLightTheme
+                      ? "hover:bg-gray-300 text-gray-700"
+                      : "hover:bg-[#374248] text-[#aebac1]"
+                  }`}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
 
-            {/* Filters Content */}
-            <div className="flex-1 p-4 overflow-y-auto">
-              <div className="space-y-6">
-                {/* Product Type Filter */}
-                <div>
-                  <h3 className="text-sm font-medium mb-2">Tipo de Análise</h3>
-                  <div className="space-y-2">
-                    <div className={`flex items-center rounded-md overflow-hidden ${
-                      isLightTheme ? "bg-gray-200" : "bg-[#2a3942]"
-                    }`}>
-                      <button
-                        onClick={() => setTempFilterParams(prev => ({ ...prev, type: 'cart' }))}
-                        className={`flex-1 px-4 py-2 text-sm transition-colors ${
-                          tempFilterParams.type === 'cart'
-                            ? isLightTheme
-                              ? "bg-blue-500 text-white"
-                              : "bg-[#00a884] text-white"
-                            : ""
-                        }`}
-                      >
-                        Carrinho
-                      </button>
-                      <button
-                        onClick={() => setTempFilterParams(prev => ({ ...prev, type: 'search' }))}
-                        className={`flex-1 px-4 py-2 text-sm transition-colors ${
-                          tempFilterParams.type === 'search'
-                            ? isLightTheme
-                              ? "bg-blue-500 text-white"
-                              : "bg-[#00a884] text-white"
-                            : ""
-                        }`}
-                      >
-                        Buscados
-                      </button>
-                    </div>
-                    <div className={`p-3 text-xs rounded-md ${
-                      isLightTheme ? "bg-blue-50 text-blue-800" : "bg-[#182229] text-[#8696a0]"
-                    }`}>
-                      <p className="mb-2">
-                        <strong>Carrinho:</strong> Mostra produtos que foram adicionados aos carrinhos dos clientes.
-                      </p>
-                      <p>
-                        <strong>Buscados:</strong> Mostra produtos que foram exibidos durante as buscas, mesmo que não tenham sido adicionados ao carrinho. Cada produto é contado apenas uma vez por conversa.
-                      </p>
+              {/* Filters Content */}
+              <div className="flex-1 p-4 overflow-y-auto">
+                <div className="space-y-6">
+                  {/* Product Type Filter */}
+                  <div>
+                    <h3 className="text-sm font-medium mb-2">Tipo de Análise</h3>
+                    <div className="space-y-2">
+                      <div className={`flex items-center rounded-md overflow-hidden ${
+                        isLightTheme ? "bg-gray-200" : "bg-[#2a3942]"
+                      }`}>
+                        <button
+                          onClick={() => setTempFilterParams(prev => ({ ...prev, type: 'cart' }))}
+                          className={`flex-1 px-4 py-2 text-sm transition-colors ${
+                            tempFilterParams.type === 'cart'
+                              ? isLightTheme
+                                ? "bg-blue-500 text-white"
+                                : "bg-[#00a884] text-white"
+                              : ""
+                          }`}
+                        >
+                          Carrinho
+                        </button>
+                        <button
+                          onClick={() => setTempFilterParams(prev => ({ ...prev, type: 'search' }))}
+                          className={`flex-1 px-4 py-2 text-sm transition-colors ${
+                            tempFilterParams.type === 'search'
+                              ? isLightTheme
+                                ? "bg-blue-500 text-white"
+                                : "bg-[#00a884] text-white"
+                              : ""
+                          }`}
+                        >
+                          Buscados
+                        </button>
+                      </div>
+                      <div className={`p-3 text-xs rounded-md ${
+                        isLightTheme ? "bg-blue-50 text-blue-800" : "bg-[#182229] text-[#8696a0]"
+                      }`}>
+                        <p className="mb-2">
+                          <strong>Carrinho:</strong> Mostra produtos que foram adicionados aos carrinhos dos clientes.
+                        </p>
+                        <p>
+                          <strong>Buscados:</strong> Mostra produtos que foram exibidos durante as buscas, mesmo que não tenham sido adicionados ao carrinho. Cada produto é contado apenas uma vez por conversa.
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Date Range Filter */}
-                <div>
-                  <h3 className="text-sm font-medium mb-2">Período</h3>
-                  <div className="space-y-2">
-                    <select
-                      value={tempFilterParams.period}
-                      onChange={handlePeriodChange}
-                      className={`w-full p-2 rounded-md ${
-                        isLightTheme
-                          ? "bg-white border border-gray-300"
-                          : "bg-[#2a3942] border border-[#374248]"
-                      }`}
-                    >
-                      <option value="all">Todo o Período</option>
-                      <option value="last7days">Últimos 7 dias</option>
-                      <option value="last30days">Últimos 30 dias</option>
-                      <option value="last90days">Últimos 90 dias</option>
-                      <option value="custom">Personalizado</option>
-                    </select>
+                  {/* Date Range Filter */}
+                  <div>
+                    <h3 className="text-sm font-medium mb-2">Período</h3>
+                    <div className="space-y-2">
+                      <select
+                        value={tempFilterParams.period}
+                        onChange={handlePeriodChange}
+                        className={`w-full p-2 rounded-md ${
+                          isLightTheme
+                            ? "bg-white border border-gray-300"
+                            : "bg-[#2a3942] border border-[#374248]"
+                        }`}
+                      >
+                        <option value="all">Todo o Período</option>
+                        <option value="last7days">Últimos 7 dias</option>
+                        <option value="last30days">Últimos 30 dias</option>
+                        <option value="last90days">Últimos 90 dias</option>
+                        <option value="custom">Personalizado</option>
+                      </select>
 
-                    {tempFilterParams.period === 'custom' && (
-                      <div className="mt-2 space-y-2">
-                        <div>
-                          <label className="block text-xs mb-1">Data Inicial</label>
-                          <input
-                            type="date"
-                            value={tempFilterParams.startDate || ''}
-                            onChange={(e) => handleDateChange('startDate', e.target.value)}
-                            className={`w-full p-2 rounded-md ${
-                              isLightTheme
-                                ? "bg-white border border-gray-300"
-                                : "bg-[#2a3942] border border-[#374248]"
-                            }`}
-                          />
+                      {tempFilterParams.period === 'custom' && (
+                        <div className="mt-2 space-y-2">
+                          <div>
+                            <label className="block text-xs mb-1">Data Inicial</label>
+                            <input
+                              type="date"
+                              value={tempFilterParams.startDate || ''}
+                              onChange={(e) => handleDateChange('startDate', e.target.value)}
+                              className={`w-full p-2 rounded-md ${
+                                isLightTheme
+                                  ? "bg-white border border-gray-300"
+                                  : "bg-[#2a3942] border border-[#374248]"
+                              }`}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs mb-1">Data Final</label>
+                            <input
+                              type="date"
+                              value={tempFilterParams.endDate || ''}
+                              onChange={(e) => handleDateChange('endDate', e.target.value)}
+                              className={`w-full p-2 rounded-md ${
+                                isLightTheme
+                                  ? "bg-white border border-gray-300"
+                                  : "bg-[#2a3942] border border-[#374248]"
+                              }`}
+                            />
+                          </div>
                         </div>
-                        <div>
-                          <label className="block text-xs mb-1">Data Final</label>
-                          <input
-                            type="date"
-                            value={tempFilterParams.endDate || ''}
-                            onChange={(e) => handleDateChange('endDate', e.target.value)}
-                            className={`w-full p-2 rounded-md ${
-                              isLightTheme
-                                ? "bg-white border border-gray-300"
-                                : "bg-[#2a3942] border border-[#374248]"
-                            }`}
-                          />
-                        </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Filters Footer */}
-            <div className={`${isLightTheme ? "bg-gray-200" : "bg-[#202c33]"} p-4 flex justify-end gap-2 ${isMobile ? "pb-4" : ""}`}>
-              <button
-                onClick={handleApplyFilters}
-                className={`px-4 py-2 rounded-md ${
-                  isLightTheme
-                    ? "bg-blue-500 text-white hover:bg-blue-600"
-                    : "bg-[#00a884] text-white hover:bg-[#06cf9c]"
-                }`}
-              >
-                Aplicar
-              </button>
+              {/* Filters Footer */}
+              <div className={`${isLightTheme ? "bg-gray-200" : "bg-[#202c33]"} p-4 flex justify-end gap-2 ${isMobile ? "pb-6" : ""}`}>
+                <button
+                  onClick={handleApplyFilters}
+                  className={`px-4 py-2 rounded-md ${
+                    isLightTheme
+                      ? "bg-blue-500 text-white hover:bg-blue-600"
+                      : "bg-[#00a884] text-white hover:bg-[#06cf9c]"
+                  }`}
+                >
+                  Aplicar
+                </button>
+              </div>
             </div>
           </div>
         )}
