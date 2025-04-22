@@ -30,11 +30,11 @@ interface ChatRecord {
   conversation: ConversationEntry[];
   intervention?: boolean;
   seller_name?: string;
+  is_gift_mom?: boolean;
 }
 
 interface SidePanelProps {
   showLeftPanel: boolean;
-  handleOpenStoreLink: () => void;
   isLoading: boolean;
   uniqueUserPhones: string[];
   filteredChats: ChatRecord[];
@@ -47,7 +47,6 @@ interface SidePanelProps {
 
 export default function SidePanel({
   showLeftPanel,
-  handleOpenStoreLink,
   isLoading,
   uniqueUserPhones,
   filteredChats,
@@ -59,6 +58,7 @@ export default function SidePanel({
 }: SidePanelProps) {
   // Local state for searching by phone or last message
   const [searchQuery, setSearchQuery] = useState("");
+  const [showOnlyGiftMom, setShowOnlyGiftMom] = useState(false);
 
   if (!showLeftPanel) return null;
 
@@ -67,6 +67,11 @@ export default function SidePanel({
     .map((uPhone) => {
       const chat = filteredChats.find((c) => c.phone === uPhone);
       if (!chat) return null;
+
+      // Filter by gift_mom if enabled
+      if (showOnlyGiftMom && !chat.is_gift_mom) {
+        return null;
+      }
 
       // Extract last message text to match against search
       const { lastMsg } = getLastMessageInfo(chat.conversation);
@@ -110,10 +115,17 @@ export default function SidePanel({
 
         <div className="flex justify-between items-center">
           <button
-            onClick={handleOpenStoreLink}
-            className={`${isLightTheme ? "text-sm text-black hover:bg-gray-200" : "text-sm text-[#8696a0] hover:bg-[#374248]"} hover:text-[#e9edef] px-3 py-1 rounded-md w-full`}
+            onClick={() => setShowOnlyGiftMom(!showOnlyGiftMom)}
+            className={`${
+              isLightTheme
+                ? `text-sm ${showOnlyGiftMom ? "bg-pink-100 text-pink-700" : "text-black hover:bg-gray-200"}`
+                : `text-sm ${showOnlyGiftMom ? "bg-pink-900 text-pink-200" : "text-[#8696a0] hover:bg-[#374248]"}`
+            } px-3 py-1 rounded-md w-full flex items-center justify-center transition-colors`}
           >
-            Abrir link
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+            </svg>
+            {showOnlyGiftMom ? "Mostrar Todos" : "Filtrar Presente"}
           </button>
         </div>
       </div>
@@ -167,6 +179,14 @@ export default function SidePanel({
                       <p className={`${isLightTheme ? "text-gray-500" : "text-[#8696a0]"} text-sm truncate`}>
                         {lastMsg || "Sem mensagens"}
                       </p>
+                      {chat.is_gift_mom && (
+                        <div className="mr-2 px-2 py-0.5 rounded-full text-xs text-white bg-pink-500 flex items-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+                          </svg>
+                          <span>Mãe</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
