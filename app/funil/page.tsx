@@ -72,6 +72,13 @@ export default function FunilPage() {
   // Placeholder for active panel - always funil on this page
   const [activePanel, setActivePanel] = useState<"chat" | "funil" | "hots" | "last24">("funil");
 
+  // Create a wrapper function to match the expected prop type
+  const handleSetActivePanel = (panel: "carts" | "chat" | "funil" | "hots" | "last24") => {
+    if (panel !== "carts") {
+      setActivePanel(panel);
+    }
+  };
+
   const handleLogout = () => {
     logout();
     router.push('/login');
@@ -118,7 +125,7 @@ export default function FunilPage() {
         {/* Navigation sidebar */}
         <NavigationSideBar
           activePanel={activePanel}
-          setActivePanel={setActivePanel}
+          setActivePanel={handleSetActivePanel}
           isMobile={isMobile}
           isLightTheme={isLightTheme}
           toggleTheme={toggleTheme}

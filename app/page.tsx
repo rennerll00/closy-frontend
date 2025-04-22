@@ -397,6 +397,13 @@ export default function AdminPage() {
   // State to control which panel is shown - always chat on this page
   const [activePanel, setActivePanel] = useState<"chat" | "funil" | "hots" | "last24">("chat");
 
+  // Create a wrapper function to match the expected prop type
+  const handleSetActivePanel = (panel: "carts" | "chat" | "funil" | "hots" | "last24") => {
+    if (panel !== "carts") {
+      setActivePanel(panel);
+    }
+  };
+
   const showLeftPanel = !isMobile || (!activeChat && activePanel === "chat");
   const showRightPanel = !isMobile || !!activeChat;
 
@@ -497,7 +504,7 @@ export default function AdminPage() {
         {/* Navigation sidebar */}
         <NavigationSideBar
           activePanel={activePanel}
-          setActivePanel={setActivePanel}
+          setActivePanel={handleSetActivePanel}
           isMobile={isMobile}
           isLightTheme={isLightTheme}
           toggleTheme={toggleTheme}
