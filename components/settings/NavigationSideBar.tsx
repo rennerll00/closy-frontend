@@ -1,10 +1,10 @@
 import React from "react";
-import { MessageSquare, Sun, Moon, LogOut, TrendingUp, Flame, Clock } from "lucide-react";
+import { MessageSquare, Sun, Moon, LogOut, TrendingUp, Flame, Clock, ShoppingCart } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 
 interface NavigationSideBarProps {
-  activePanel: "chat" | "funil" | "hots" | "last24";
-  setActivePanel: (panel: "chat" | "funil" | "hots" | "last24") => void;
+  activePanel: "chat" | "funil" | "hots" | "last24" | "carts";
+  setActivePanel: (panel: "chat" | "funil" | "hots" | "last24" | "carts") => void;
   isMobile: boolean;
   isLightTheme: boolean;
   toggleTheme: () => void;
@@ -24,14 +24,17 @@ export default function NavigationSideBar({
   const isOnFunilPage = pathname === "/funil";
   const isOnHotsPage = pathname === "/hots";
   const isOnLast24Page = pathname === "/last24";
+  const isOnCartsPage = pathname === "/carts";
 
-  const handleNavigation = (panel: "chat" | "funil" | "hots" | "last24") => {
+  const handleNavigation = (panel: "chat" | "funil" | "hots" | "last24" | "carts") => {
     if (panel === "funil") {
       router.push("/funil");
     } else if (panel === "hots") {
       router.push("/hots");
     } else if (panel === "last24") {
       router.push("/last24");
+    } else if (panel === "carts") {
+      router.push("/carts");
     } else {
       // If already on home page, use the panel toggle
       if (pathname === "/") {
@@ -59,7 +62,7 @@ export default function NavigationSideBar({
         <button
           onClick={() => handleNavigation("chat")}
           className={`p-3 rounded-full transition-colors ${
-            !isOnFunilPage && !isOnHotsPage && !isOnLast24Page
+            !isOnFunilPage && !isOnHotsPage && !isOnLast24Page && !isOnCartsPage
               ? isLightTheme
                 ? "bg-blue-500 text-white"
                 : "bg-[#00a884] text-white"
@@ -118,6 +121,22 @@ export default function NavigationSideBar({
           title="Last 24 Hours"
         >
           <Clock size={24} />
+        </button>
+
+        <button
+          onClick={() => handleNavigation("carts")}
+          className={`p-3 rounded-full transition-colors ${
+            isOnCartsPage
+              ? isLightTheme
+                ? "bg-blue-500 text-white"
+                : "bg-[#00a884] text-white"
+              : isLightTheme
+              ? "text-gray-700 hover:bg-gray-300"
+              : "text-[#aebac1] hover:bg-[#202c33]"
+          }`}
+          title="Carts"
+        >
+          <ShoppingCart size={24} />
         </button>
 
         <button

@@ -51,6 +51,7 @@ export interface ChatRecord {
   recipient: string;
   conversation: ConversationEntry[];
   intervention?: boolean;
+  is_gift_mom?: boolean;
 }
 
 // --- Constants ---
@@ -360,6 +361,12 @@ export default function AdminPage() {
     await fetchData();
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleOpenStoreLink = () => {
+    const link = `https://api.whatsapp.com/send?phone=${phoneParam}`;
+    window.open(link, "_blank");
+  };
+
   // Mobile detection
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -398,11 +405,6 @@ export default function AdminPage() {
       e.preventDefault();
       handleSendMessage();
     }
-  };
-
-  const handleOpenStoreLink = () => {
-    const link = `https://api.whatsapp.com/send?phone=${phoneParam}`;
-    window.open(link, "_blank");
   };
 
   const handleLogout = () => {
@@ -509,7 +511,6 @@ export default function AdminPage() {
             <div className={`${isMobile && !activeChat ? "w-full" : "w-[350px]"} flex-shrink-0 border-r ${isLightTheme ? "border-gray-300 bg-gray-100" : "border-[#222d34] bg-[#111b21]"} flex flex-col`}>
               <SidePanel
                 showLeftPanel={showLeftPanel}
-                handleOpenStoreLink={handleOpenStoreLink}
                 isLoading={isLoading}
                 uniqueUserPhones={uniqueUserPhones}
                 filteredChats={filteredChats}
